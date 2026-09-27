@@ -1,0 +1,47 @@
+import os
+import grading_utils
+
+# 1. Helper function to validate inputs (0 to 100)
+def get_valid_grade(subject_name):
+    while True:
+        grade = float(input(f"Enter the grade for {subject_name}: "))
+        if 0 <= grade <= 100:
+            return grade
+        print("⚠️ Invalid entry! Grade must be between 0 and 100. Try again.\n")
+
+# 2. Collect student details
+student_name = input("Enter the student's name: ")
+
+# List of subjects
+subjects = ["Database Systems", "Web Development", "Python Programming"]
+grades = []
+
+# 3. Loop through subjects to collect validated grades
+for subject in subjects:
+    score = get_valid_grade(subject)
+    grades.append(score)
+
+# Clear screen before printing report
+os.system('clear')
+
+# 4. Perform calculations using your module
+total, average = grading_utils.calculate_average(grades)
+result = grading_utils.classify_result(average)
+
+# 5. Display detailed report
+print("=" * 40)
+print("           STUDENT REPORT           ")
+print("=" * 40)
+print(f"Name: {student_name}")
+print("-" * 40)
+print("Subject Breakdown:")
+
+# zip() pairs each subject name with its corresponding grade
+for subject, mark in zip(subjects, grades):
+    print(f"  • {subject}: {mark}")
+
+print("-" * 40)
+print(f"Total: {total:.2f}")
+print(f"Average Mark: {average:.2f}")
+print(f"Final Grade: {result}")
+print("=" * 40)
