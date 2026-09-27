@@ -1,3 +1,4 @@
+#Create a module called grading_utils.py. Move the grading functions into the module
 def calculate_average(grades):
     total = sum(grades)
     average = total / len(grades)

@@ -10,8 +10,7 @@ os.system('clear')
 
 grades = [grade1, grade2, grade3]
 
-
-
+#mport and use them from a separate Python file
 import grading_utils
 
 
