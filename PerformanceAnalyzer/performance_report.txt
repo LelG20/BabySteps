@@ -1,0 +1,81 @@
+================================================================
+                   STUDENT PERFORMANCE REPORT                   
+================================================================
+Student 1 of 7
+Student ID  : 25/222
+Name        : Sandra Mutegi
+Programme   : MDS
+Marks       : Math: 75 | English: 80 | Science: 70
+Average     : 75.00
+Grade       : B
+Status      : Regular student - Good standing, grade B.
+----------------------------------------------------------------
+Student 2 of 7
+Student ID  : 25/224
+Name        : Carlos Ndunda
+Programme   : MDS
+Marks       : Math: 90 | English: 85 | Science: 88
+Average     : 87.67
+Grade       : A
+Status      : Scholarship student - eligible, KES 50,000 awarded, grade A.
+Scholarship : KES 50,000
+Eligibility : ELIGIBLE (cut-off average 85)
+----------------------------------------------------------------
+Student 3 of 7
+Student ID  : 25/226
+Name        : Paul Omboga
+Programme   : MDA
+Marks       : Math: 60 | English: 65 | Science: 58
+Average     : 61.00
+Grade       : C
+Status      : Regular student - Good standing, grade C.
+----------------------------------------------------------------
+Student 4 of 7
+Student ID  : 25/228
+Name        : Ruth Mwimali
+Programme   : MDA
+Marks       : Math: 95 | English: 92 | Science: 90
+Average     : 92.33
+Grade       : A
+Status      : Scholarship student - eligible, KES 80,000 awarded, grade A.
+Scholarship : KES 80,000
+Eligibility : ELIGIBLE (cut-off average 85)
+----------------------------------------------------------------
+Student 5 of 7
+Student ID  : 25/230
+Name        : Grace Wanjiku
+Programme   : MDS
+Marks       : Math: 82 | English: 78 | Science: 85
+Average     : 81.67
+Grade       : A
+Status      : Regular student - Good standing, grade A.
+----------------------------------------------------------------
+Student 6 of 7
+Student ID  : 25/232
+Name        : Brian Kamau
+Programme   : MDA
+Marks       : Math: 70 | English: 72 | Science: 68
+Average     : 70.00
+Grade       : B
+Status      : Scholarship student - NOT eligible (average below 85), scholarship of KES 30,000 at risk.
+Scholarship : KES 30,000
+Eligibility : NOT ELIGIBLE (cut-off average 85)
+----------------------------------------------------------------
+Student 7 of 7
+Student ID  : 25/234
+Name        : Faith Achieng
+Programme   : MDS
+Marks       : Math: 45 | English: 52 | Science: 48
+Average     : 48.33
+Grade       : F
+Status      : Regular student - Needs academic support, grade F.
+----------------------------------------------------------------
+                   CLASS PERFORMANCE SUMMARY                    
+----------------------------------------------------------------
+Number of students    : 7
+Highest average       : 92.33 - Ruth Mwimali (25/228)
+Lowest average        : 48.33 - Faith Achieng (25/234)
+Overall class average : 73.71
+Grade distribution    : A: 3, B: 2, C: 1, D: 0, F: 1
+Scholarship holders   : 3 (eligible: 2, not eligible: 1)
+================================================================
