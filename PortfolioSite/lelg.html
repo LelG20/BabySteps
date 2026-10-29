@@ -11,7 +11,11 @@
     <header class="site-header">
         <nav class="navigation" aria-label="Main navigation">
             <a class="logo" href="#home">LG</a>
-            <div class="nav-links">
+            <button class="menu-toggle" id="menu-toggle" type="button" aria-controls="primary-menu" aria-expanded="false" aria-label="Open navigation">
+                <span class="menu-toggle-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+                <span class="menu-toggle-label">Menu</span>
+            </button>
+            <div class="nav-links" id="primary-menu">
                 <a href="#about">About</a>
                 <a href="#skills">Skills</a>
                 <a href="#projects">Projects</a>
@@ -30,7 +34,11 @@
                 My goal is to keep building a strong foundation, one small
                 project at a time.
             </p>
-            <a class="button" href="#projects">See my work</a>
+            <div class="hero-actions">
+                <a class="button" href="#projects">See my work</a>
+                <button class="button dynamic-button" id="learning-tip-button" type="button">Show a learning tip</button>
+            </div>
+            <p class="learning-tip" id="learning-tip" aria-live="polite" hidden></p>
         </section>
 
         <section class="content-section" id="about">
@@ -130,17 +138,42 @@
             <h2>Let's keep learning.</h2>
             <p>
                 If you would like to connect, share a learning resource, or
-                talk about beginner-friendly technology projects, you can reach
-                me by email. I am always open to learning from new ideas and
+                talk about beginner-friendly technology projects, send me a
+                message. I am always open to learning from new ideas and
                 conversations.
             </p>
             <a class="contact-link" href="mailto:leong@gmail.com">leong@gmail.com</a>
+
+            <form class="contact-form" id="contact-form" action="contact.php" method="post" novalidate>
+                <div class="form-field">
+                    <label for="contact-name">Your name</label>
+                    <input id="contact-name" name="name" type="text" autocomplete="name" maxlength="120" required>
+                </div>
+                <div class="form-field">
+                    <label for="contact-email">Email address</label>
+                    <input id="contact-email" name="email" type="email" autocomplete="email" maxlength="254" required>
+                </div>
+                <div class="form-field form-field-full">
+                    <label for="contact-subject">Subject</label>
+                    <input id="contact-subject" name="subject" type="text" maxlength="200" required>
+                </div>
+                <div class="form-field form-field-full">
+                    <label for="contact-message">Message</label>
+                    <textarea id="contact-message" name="message" rows="6" maxlength="5000" required></textarea>
+                </div>
+                <p class="form-status form-field-full" id="form-status" aria-live="polite" role="status"></p>
+                <div class="form-field-full">
+                    <button class="contact-submit" type="submit">Send message</button>
+                    <p class="form-note">Your message will be saved in the portfolio contact database.</p>
+                </div>
+            </form>
         </section>
     </main>
 
     <footer class="site-footer">
         <p>&copy; 2026 Leon Gikonyo</p>
-        <p>Built with HTML and CSS.</p>
+        <p>Built with HTML, CSS, and JavaScript.</p>
     </footer>
+    <script src="script.js" defer></script>
 </body>
 </html>
