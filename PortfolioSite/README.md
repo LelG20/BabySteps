@@ -62,6 +62,21 @@ If your local MySQL username or password is different from the XAMPP defaults in
 
 This project demonstrates semantic HTML and page sections, external CSS, responsive media queries, an external JavaScript file, DOM selection, event listeners, functions, arrays, conditionals, dynamic text updates, client-side and server-side validation, PHP form handling, PDO database connections, prepared SQL statements, and a MySQL table.
 
+## Assignment requirements checklist
+
+| Requirement | Where it is demonstrated |
+| --- | --- |
+| 1. External JavaScript file | `lelg.html` loads `script.js` with the `defer` attribute. |
+| 2. Interactive navigation/menu | `script.js` opens and closes the mobile Menu button, updates its ARIA state, and closes the menu after link selection, Escape, or resizing to desktop. |
+| 3. Dynamic content button | The “Show a learning tip” button is connected to `showNextLearningTip()` in `script.js`. |
+| 4. Contact form with validation | `validateContactForm()` checks required fields and the email address in JavaScript; `contact.php` validates again on the server before saving. |
+| 5. DOM manipulation and event listeners | `script.js` uses `querySelector()` and `querySelectorAll()`, plus click, submit, input, keydown, and resize event listeners. |
+| 6. Functions and conditionals | `setMenuOpen()`, `showNextLearningTip()`, and `validateContactForm()` are functions. Their `if` statements control menu state, missing elements, and invalid form input. |
+| 7. Dynamic content updates | `showNextLearningTip()` changes the learning-tip element with `textContent`; the form validator updates its status message. |
+| 8. Responsive compatibility | `styles.css` uses a 680-pixel breakpoint to switch to the mobile menu and stack the layout; the manual test checklist covers desktop and phone widths. |
+
+The project is in the [BabySteps GitHub repository](https://github.com/LelG20/BabySteps). Before submitting, run through the manual test checklist above in your local browser and XAMPP setup.
+
 ## Important local-use note
 
 The included `config.php` uses the common local XAMPP account (`root` with a blank password) to make a classroom setup straightforward. This is for local learning only. Do not use those defaults on a public server, and never put a real database password in a public GitHub repository.
