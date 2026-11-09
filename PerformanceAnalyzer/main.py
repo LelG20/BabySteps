@@ -1,41 +1,29 @@
-"""
-Student Performance Analysis System - main program
-Author : Leon Gikonyo Muchunga (251191BSIT)
-
-Run with:  python main.py
-
-Classes live in classes.py and functions in methods.py; this file only
-imports them and runs the demonstration for each task.
-"""
-from pathlib import Path
-
 from classes import PerformanceAnalyzer
 from methods import (
-    demo_abstraction_and_encapsulation,
-    demo_analyzer_and_inheritance,
-    demo_flexible_methods,
-    demo_loading,
-    demo_polymorphism,
-    demo_report,
     load_students_from_csv,
+    save_report,
+    show_abstraction_and_encapsulation,
+    show_analyzer,
+    show_flexible_method,
+    show_inheritance,
+    show_polymorphism,
 )
 
-BASE_DIR = Path(__file__).resolve().parent
-CSV_FILE = BASE_DIR / "students.csv"
-REPORT_FILE = BASE_DIR / "performance_report.txt"
 
+# Keep these files in the same folder as main.py.
+students = load_students_from_csv("students.csv")
+analyzer = PerformanceAnalyzer(students)
 
-def main():
-    students = load_students_from_csv(CSV_FILE)
-    analyzer = PerformanceAnalyzer(students)
+print("STUDENT PERFORMANCE ANALYSIS SYSTEM")
+print("Students loaded:", len(students))
+print()
 
-    demo_loading(students)                              # Task 1
-    demo_abstraction_and_encapsulation()                # Task 2
-    demo_analyzer_and_inheritance(students, analyzer)   # Tasks 3 and 4
-    demo_polymorphism(students)                         # Task 5
-    demo_flexible_methods(students[0])                  # Task 6
-    demo_report(analyzer, REPORT_FILE)                  # Task 7
+show_abstraction_and_encapsulation()
+show_analyzer(analyzer)
+show_inheritance(students)
+show_polymorphism(students)
+show_flexible_method(students[0])
 
-
-if __name__ == "__main__":
-    main()
+print("TASK 7: PERFORMANCE REPORT")
+print(analyzer.generate_report())
+save_report(analyzer, "performance_report.txt")

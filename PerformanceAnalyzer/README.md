@@ -1,92 +1,44 @@
 # Student Performance Analysis System
 
-**Name:** Leon Gikonyo Muchunga  
+**Student:** Leon Gikonyo Muchunga
 **Student number:** 251191BSIT
 
-A Python OOP program that loads student records from a CSV file, calculates performance metrics, identifies scholarship-eligible students and generates a performance report.
+A simple Python program that reads student marks from a CSV file, calculates averages and grades, checks scholarship eligibility, and creates a class report.
 
 ## Files
-| File | Purpose |
-|---|---|
-| `main.py` | Short main program: imports what it needs and runs each task |
-| `classes.py` | All classes: `Student`, `AIUStudent`, `ScholarshipStudent`, `PerformanceAnalyzer`, plus the constants |
-| `methods.py` | Stand-alone functions: `load_students_from_csv()` and one demonstration function per task |
-| `students.csv` | Dataset: the 4 sample records plus 3 additional records |
-| `performance_report.txt` | Report produced by the last run |
 
-## How to run
-```
+- `main.py` starts the program and runs the examples.
+- `classes.py` contains the `Student`, `AIUStudent`, `ScholarshipStudent`, and `PerformanceAnalyzer` classes.
+- `methods.py` loads the CSV file and contains small demonstration functions.
+- `students.csv` contains the student records. It includes the four sample students and three extra records.
+- `performance_report.txt` is created when the program runs.
+
+## Run the program
+
+Open a terminal in this folder and run:
+
+```text
 python main.py
 ```
-Requires Python 3.8 or later and only the standard library. Keep `main.py`, `classes.py`, `methods.py` and `students.csv` in the same folder.
 
-## Class design
-```
-Student (abstract)
-   └── AIUStudent                (implements get_status_message)
-          └── ScholarshipStudent (adds scholarship_amount, is_eligible; overrides get_status_message and generate_report)
+The program uses only Python's standard library. Keep the CSV file in the same folder as `main.py`.
 
-PerformanceAnalyzer  ──holds──>  Student objects (composition)
-```
+## How the program meets the assignment
 
-## How the files import each other
-```
-classes.py   (imports nothing from this project)
-methods.py   <- classes.py
-main.py      <- classes.py, methods.py
-```
-Imports only point one way, so there are no circular imports.
+1. **CSV dataset:** `students.csv` has seven student records, including the four records supplied in the assignment. The `ScholarshipAmount` column identifies scholarship students; a blank value means the student is a regular `AIUStudent`.
+2. **Encapsulation and abstraction:** `Student` stores its marks in a private `__marks` dictionary. Marks are read with `get_marks()` and changed with `set_mark()`. `Student` is an abstract class because it requires child classes to provide `get_status_message()`.
+3. **Analyzer and composition:** `PerformanceAnalyzer` stores a list of student objects and provides `highest_average()`, `lowest_average()`, and `class_average()`.
+4. **Inheritance and overriding:** `AIUStudent` inherits from `Student`. `ScholarshipStudent` inherits from `AIUStudent`, uses `super()` to set up common information, and adds `scholarship_amount` and `is_eligible()`. Its `get_status_message()` and `generate_report()` methods override parent methods.
+5. **Polymorphism:** the program puts both types in the same student list and calls `get_status_message()` for each object. Python uses the version that belongs to that object's class.
+6. **Flexible method:** `calculate_average(*marks, decimals=2)` can calculate the student's stored marks or marks provided in the call. For example, it accepts three marks, five marks, or a different number of decimal places. Python does not use traditional method overloading; `*marks` and a default argument provide flexibility instead.
+7. **Report:** running the program prints and saves a report with student IDs, names, programmes, marks, averages, grades, scholarship information where applicable, and the highest, lowest, and class averages.
 
-## Where each task is met
-| Task | Where in the code |
-|---|---|
-| 1. Dataset | `students.csv` and `load_students_from_csv()` in `methods.py`. Rows with a `ScholarshipAmount` become `ScholarshipStudent` objects, the rest `AIUStudent` objects |
-| 2. Encapsulation and abstraction | `classes.py`: `Student` uses protected attributes (`_first_name`), a private marks dictionary (`__marks`), properties and validating setters. `get_status_message()` is an `@abstractmethod`, so `Student` cannot be instantiated |
-| 3. PerformanceAnalyzer | `classes.py`: `PerformanceAnalyzer` has `highest_average()`, `lowest_average()`, `class_average()`. It keeps references to the student objects and never copies their data |
-| 4. Inheritance and overriding | `classes.py`: `ScholarshipStudent` calls `super().__init__()`, adds `scholarship_amount` and `is_eligible()` (average at least 85), and overrides `get_status_message()` and `generate_report()` |
-| 5. Polymorphism | `demo_polymorphism()` in `methods.py` stores both student types in one list and calls `get_status_message()` in a loop |
-| 6. Flexible interface | `classes.py`: `calculate_average(*marks, decimals=2)` and `compute_average()` |
-| 7. Report | `generate_report()` in the `Student`, `ScholarshipStudent` and `PerformanceAnalyzer` classes (`classes.py`) |
+The grading scale is A (80 and above), B (70–79), C (60–69), D (50–59), and F (below 50). A scholarship student is eligible when their average is at least 85.
 
-## Explanation: polymorphism and method overriding (Task 5)
-`Student` declares `get_status_message()` as abstract. `AIUStudent` implements it with a regular-student message. `ScholarshipStudent` overrides it with a message about the scholarship amount and eligibility. In the loop `for student in students: student.get_status_message()` the code never checks the type. Python looks at the actual object and runs the matching version, so the same call gives different results. The same happens with `generate_report()`: `ScholarshipStudent` reuses the parent's report through `super()` and adds scholarship lines.
+## Brief reflection
 
-## Explanation: method overloading equivalent (Task 6)
-Python keeps only the last method defined with a given name, so true overloading is not possible. `calculate_average(*marks, decimals=2)` gives the same flexibility with one method:
-- `calculate_average()` uses the student's own stored marks.
-- `calculate_average(80, 90, 70)` averages three marks passed separately.
-- `calculate_average(80, 90, 70, 60, 55)` averages any number of marks, because `*marks` collects them into a tuple.
-- `decimals` is a default argument, so rounding is optional.
-
-Validation rejects an empty call, non-numeric values, booleans and marks outside 0 to 100.
-
-## Grading and eligibility rules
-| Average | Grade |
-|---|---|
-| 80 and above | A |
-| 70 to 79.99 | B |
-| 60 to 69.99 | C |
-| 50 to 59.99 | D |
-| Below 50 | F |
-
-A scholarship student is **eligible** when the average is at least 85. The dataset includes one scholarship holder (Brian Kamau) below the cut-off to show the "not eligible" result.
-
-## Sample output (summary)
-```
-Highest average       : 92.33 - Ruth Mwimali (25/228)
-Lowest average        : 48.33 - Faith Achieng (25/234)
-Overall class average : 73.71
-Grade distribution    : A: 3, B: 2, C: 1, D: 0, F: 1
-Scholarship holders   : 3 (eligible: 2, not eligible: 1)
-```
-The full report is in `performance_report.txt`.
-
-## Reflection on challenges
-- **Keeping data protected but usable.** I had to decide what needs a setter and what must not change. The student ID is read-only, and `get_marks()` returns a copy so outside code cannot edit marks without validation.
-- **Choosing how to represent two student types in one CSV.** I added an optional `ScholarshipAmount` column. A blank value gives an `AIUStudent`, and a value gives a `ScholarshipStudent`.
-- **Rounding.** Comparing rounded averages could wrongly decide eligibility (for example 84.996 shown as 85.00). I compare with the full-precision `average_score` and round only for display.
-- **Method overloading in Python.** I had to learn that overloading does not exist and replace it with `*args` and default arguments.
-- **Bad data.** The loader skips invalid CSV rows with a warning instead of crashing.
+One challenge was connecting the CSV rows to different student types. I used the `ScholarshipAmount` column to decide whether to create an `AIUStudent` or a `ScholarshipStudent`. Another challenge was showing flexible average calculations, because Python does not support traditional method overloading. The `*marks` argument lets one method accept different numbers of marks.
 
 ## AI use declaration
-I used an AI assistant (Claude, by Anthropic) while working on this assignment. It generated the first draft of the code structure, the extra dataset records and the explanations in this README. I ran the program, checked the output against the task requirements and the averages by hand, and I can explain every class, method and design decision. Any parts I could not explain, I did not keep.
+
+AI assistance was used to simplify and review the program structure and to help check the implementation against the assignment requirements. The submitted student should review the final code, run it, and make sure they understand and can explain each part. This declaration should be adjusted if the course requires a different format or further detail about AI use.

@@ -1,330 +1,206 @@
-"""
-classes.py
-All classes for the Student Performance Analysis System.
-
-    Student (abstract)          - encapsulation, abstraction, flexible calculate_average()
-      +-- AIUStudent            - regular student, implements the abstract method
-            +-- ScholarshipStudent - adds scholarship rules, overrides methods
-    PerformanceAnalyzer         - highest, lowest, class average and the full report
-"""
 from abc import ABC, abstractmethod
-from pathlib import Path
 
-# --------------------------------------------------------------------------
-# Constants (kept in one place so rules are easy to change)
-# --------------------------------------------------------------------------
-SUBJECTS = ("Math", "English", "Science")   # subjects stored for every student
-MIN_MARK = 0                                # lowest valid mark
-MAX_MARK = 100                              # highest valid mark
-SCHOLARSHIP_CUTOFF = 85                     # minimum average for scholarship eligibility
-REQUIRED_COLUMNS = ("StudentID", "FName", "LName", "Programme") + SUBJECTS
+SUBJECTS = ["Math", "English", "Science"]
 
 
-# ==========================================================================
-# Student: abstract base class (encapsulation and abstraction)
-# ==========================================================================
 class Student(ABC):
-    """Abstract base class that stores and protects the data of one student."""
+    """Base class for a student."""
 
     def __init__(self, student_id, first_name, last_name, programme, marks):
-        """
-        Create a student.
+        # The underscore means these fields are intended for class use.
+        self._student_id = student_id
+        self._first_name = first_name
+        self._last_name = last_name
+        self._programme = programme
 
-        marks must be a dictionary with one mark for every subject in SUBJECTS,
-        for example {"Math": 75, "English": 80, "Science": 70}.
-        """
-        # Single underscore = protected: meant for this class and its subclasses.
-        self._student_id = self._validate_text(student_id, "Student ID")
-        self._first_name = self._validate_text(first_name, "First name")
-        self._last_name = self._validate_text(last_name, "Last name")
-        self._programme = self._validate_text(programme, "Programme")
-
-        # Double underscore = private: name-mangled, only Student's own methods touch it.
+        # Double underscore makes the marks private to this class.
         self.__marks = {}
         for subject in SUBJECTS:
             if subject not in marks:
-                raise ValueError(f"Missing mark for subject: {subject}")
-            self.set_mark(subject, marks[subject])  # reuse the validating setter
+                raise ValueError("Missing mark for " + subject)
+            self.set_mark(subject, marks[subject])
 
-    # ---------------- validation helpers (static: need no object data) -------
-    @staticmethod
-    def _validate_text(value, field_name):
-        """Return the stripped text, or raise ValueError if it is empty."""
-        if not isinstance(value, str) or not value.strip():
-            raise ValueError(f"{field_name} must be a non-empty text value.")
-        return value.strip()
-
-    @staticmethod
-    def _validate_mark(mark):
-        """Return the mark as a float, or raise an error if it is not valid."""
-        if isinstance(mark, bool) or not isinstance(mark, (int, float)):
-            raise TypeError(f"Marks must be numbers, got {mark!r}.")
-        if not MIN_MARK <= mark <= MAX_MARK:
-            raise ValueError(f"Marks must be between {MIN_MARK} and {MAX_MARK}, got {mark}.")
-        return float(mark)
-
-    # ---------------- encapsulated access: properties ------------------------
-    @property
-    def student_id(self):
-        """Read-only: an ID must never change after the student is created."""
+    def get_student_id(self):
         return self._student_id
 
-    @property
-    def first_name(self):
-        return self._first_name
+    def get_full_name(self):
+        return self._first_name + " " + self._last_name
 
-    @first_name.setter
-    def first_name(self, value):
-        self._first_name = self._validate_text(value, "First name")
-
-    @property
-    def last_name(self):
-        return self._last_name
-
-    @last_name.setter
-    def last_name(self, value):
-        self._last_name = self._validate_text(value, "Last name")
-
-    @property
-    def programme(self):
+    def get_programme(self):
         return self._programme
 
-    @programme.setter
-    def programme(self, value):
-        self._programme = self._validate_text(value, "Programme")
+    def update_name(self, first_name, last_name):
+        self._first_name = first_name
+        self._last_name = last_name
 
-    @property
-    def full_name(self):
-        """Read-only combination of first and last name."""
-        return f"{self._first_name} {self._last_name}"
+    def update_programme(self, programme):
+        self._programme = programme
 
-    # ---------------- marks: controlled access -------------------------------
     def get_marks(self):
-        """Return a COPY of the marks so outside code cannot change them directly."""
-        return dict(self.__marks)
+        # Return a copy so other code cannot change marks without set_mark().
+        return self.__marks.copy()
 
     def set_mark(self, subject, mark):
-        """Update one subject mark after validating the subject and the mark."""
         if subject not in SUBJECTS:
-            raise KeyError(f"Unknown subject '{subject}'. Valid subjects: {', '.join(SUBJECTS)}")
-        self.__marks[subject] = self._validate_mark(mark)
-
-    # ---------------- calculations -------------------------------------------
-    @staticmethod
-    def compute_average(*marks, decimals=2):
-        """
-        Task 6 - flexible interface (Python's equivalent of method overloading).
-
-        Accepts ANY number of marks passed separately (*marks) and an optional
-        keyword argument 'decimals' that has a default value of 2.
-            compute_average(80, 90, 70)          -> three subjects
-            compute_average(80, 90, 70, 60, 55)  -> five subjects
-            compute_average(80, 90, decimals=0)  -> custom rounding
-        """
-        if not marks:
-            raise ValueError("At least one mark is required to calculate an average.")
-        valid_marks = [Student._validate_mark(mark) for mark in marks]
-        return round(sum(valid_marks) / len(valid_marks), decimals)
-
-    @property
-    def average_score(self):
-        """Full-precision average of the stored marks (used for comparisons)."""
-        marks = list(self.__marks.values())
-        return sum(marks) / len(marks)
+            raise ValueError("Subject must be Math, English, or Science")
+        if not isinstance(mark, (int, float)) or isinstance(mark, bool):
+            raise ValueError("A mark must be a number")
+        if mark < 0 or mark > 100:
+            raise ValueError("A mark must be between 0 and 100")
+        self.__marks[subject] = mark
 
     def calculate_average(self, *marks, decimals=2):
-        """
-        Calculate an average, using the same flexible interface:
-            student.calculate_average()              -> the student's own marks
-            student.calculate_average(70, 80, 90)    -> the marks supplied
-            student.calculate_average(70, 80, 90, 60)-> any number of marks
-        """
-        if not marks:
-            return round(self.average_score, decimals)
-        return self.compute_average(*marks, decimals=decimals)
+        """Average own marks, or any marks passed to this method."""
+        if len(marks) == 0:
+            marks = tuple(self.__marks.values())
 
-    @staticmethod
-    def grade_for(average):
-        """Convert an average into a letter grade."""
-        if average >= 80:
-            return "A"
-        if average >= 70:
-            return "B"
-        if average >= 60:
-            return "C"
-        if average >= 50:
-            return "D"
-        return "F"
+        if len(marks) == 0:
+            raise ValueError("At least one mark is needed")
+
+        total = 0
+        for mark in marks:
+            if not isinstance(mark, (int, float)) or isinstance(mark, bool):
+                raise ValueError("Marks must be numbers")
+            if mark < 0 or mark > 100:
+                raise ValueError("Marks must be between 0 and 100")
+            total = total + mark
+
+        return round(total / len(marks), decimals)
+
+    def get_average_score(self):
+        """Return the exact average for comparisons and calculations."""
+        return sum(self.__marks.values()) / len(self.__marks)
 
     def get_grade(self):
-        """Return the student's letter grade based on their average."""
-        return self.grade_for(self.average_score)
+        average = self.get_average_score()
+        if average >= 80:
+            return "A"
+        elif average >= 70:
+            return "B"
+        elif average >= 60:
+            return "C"
+        elif average >= 50:
+            return "D"
+        else:
+            return "F"
 
-    # ---------------- abstraction ---------------------------------------------
     @abstractmethod
     def get_status_message(self):
-        """
-        Abstract method: every concrete student type MUST implement it.
-        Student itself cannot be instantiated because this method has no body here.
-        """
-
-    # ---------------- reporting (Task 7) ---------------------------------------
-    @staticmethod
-    def _format_mark(mark):
-        """Show 75.0 as 75 and 82.5 as 82.5."""
-        return f"{mark:g}"
+        """Each type of student must provide its own status message."""
+        pass
 
     def generate_report(self):
-        """Return a readable performance report for this student."""
-        marks_text = " | ".join(
-            f"{subject}: {self._format_mark(mark)}" for subject, mark in self.get_marks().items()
+        marks = self.get_marks()
+        lines = []
+        lines.append("Student ID  : " + self.get_student_id())
+        lines.append("Name        : " + self.get_full_name())
+        lines.append("Programme   : " + self.get_programme())
+        lines.append(
+            "Marks       : Math: {0}, English: {1}, Science: {2}".format(
+                marks["Math"], marks["English"], marks["Science"]
+            )
         )
-        lines = [
-            f"Student ID  : {self.student_id}",
-            f"Name        : {self.full_name}",
-            f"Programme   : {self.programme}",
-            f"Marks       : {marks_text}",
-            f"Average     : {self.calculate_average():.2f}",
-            f"Grade       : {self.get_grade()}",
-            f"Status      : {self.get_status_message()}",
-        ]
+        lines.append("Average     : " + str(self.calculate_average()))
+        lines.append("Grade       : " + self.get_grade())
+        lines.append("Status      : " + self.get_status_message())
         return "\n".join(lines)
 
     def __str__(self):
-        return f"{self.student_id} {self.full_name} ({self.programme}) - average {self.calculate_average():.2f}"
+        return self.get_full_name() + " - average " + str(self.calculate_average())
 
 
-# ==========================================================================
-# AIUStudent: regular student
-# ==========================================================================
 class AIUStudent(Student):
-    """A regular university student. Implements the abstract method."""
+    """A regular student at the university."""
 
     def get_status_message(self):
-        """Implements the abstract method for a regular student."""
-        if self.average_score >= 50:
-            standing = "Good standing"
+        if self.calculate_average() >= 50:
+            return "Regular student in good standing"
         else:
-            standing = "Needs academic support"
-        return f"Regular student - {standing}, grade {self.get_grade()}."
+            return "Regular student needs academic support"
 
 
-# ==========================================================================
-# ScholarshipStudent: inheritance, super() and method overriding
-# ==========================================================================
 class ScholarshipStudent(AIUStudent):
-    """A student who holds a scholarship; adds eligibility rules to AIUStudent."""
+    """A student who has a scholarship amount recorded."""
 
     def __init__(self, student_id, first_name, last_name, programme, marks, scholarship_amount):
-        # super() runs AIUStudent/Student's constructor so we do not repeat that code.
+        # Use the parent class constructor for the common student information.
         super().__init__(student_id, first_name, last_name, programme, marks)
-        self._scholarship_amount = self._validate_amount(scholarship_amount)
-
-    @staticmethod
-    def _validate_amount(amount):
-        """Scholarship amounts must be non-negative numbers."""
-        if isinstance(amount, bool) or not isinstance(amount, (int, float)):
-            raise TypeError(f"Scholarship amount must be a number, got {amount!r}.")
-        if amount < 0:
-            raise ValueError("Scholarship amount cannot be negative.")
-        return float(amount)
-
-    @property
-    def scholarship_amount(self):
-        return self._scholarship_amount
-
-    @scholarship_amount.setter
-    def scholarship_amount(self, value):
-        self._scholarship_amount = self._validate_amount(value)
+        self.scholarship_amount = scholarship_amount
 
     def is_eligible(self):
-        """True when the average is at least SCHOLARSHIP_CUTOFF (85)."""
-        return self.average_score >= SCHOLARSHIP_CUTOFF
+        return self.get_average_score() >= 85
 
-    # Overridden method (Task 4 and 5): same name as in AIUStudent, new behaviour.
+    # This method overrides AIUStudent.get_status_message().
     def get_status_message(self):
         if self.is_eligible():
-            return (f"Scholarship student - eligible, KES {self.scholarship_amount:,.0f} "
-                    f"awarded, grade {self.get_grade()}.")
-        return (f"Scholarship student - NOT eligible (average below {SCHOLARSHIP_CUTOFF}), "
-                f"scholarship of KES {self.scholarship_amount:,.0f} at risk.")
+            return "Scholarship student - eligible"
+        else:
+            return "Scholarship student - not eligible"
 
-    # Overridden again: reuse the parent report with super() and extend it.
+    # This report also overrides the report from Student.
     def generate_report(self):
-        base_report = super().generate_report()
-        eligibility = "ELIGIBLE" if self.is_eligible() else "NOT ELIGIBLE"
-        extra = [
-            f"Scholarship : KES {self.scholarship_amount:,.0f}",
-            f"Eligibility : {eligibility} (cut-off average {SCHOLARSHIP_CUTOFF})",
-        ]
-        return base_report + "\n" + "\n".join(extra)
+        report = super().generate_report()
+        if self.is_eligible():
+            eligibility = "Yes"
+        else:
+            eligibility = "No"
+        report = report + "\nScholarship : KES " + str(self.scholarship_amount)
+        report = report + "\nEligible    : " + eligibility
+        return report
 
 
-# ==========================================================================
-# PerformanceAnalyzer: composition (holds Student objects, never copies them)
-# ==========================================================================
 class PerformanceAnalyzer:
-    """Analyses a collection of Student objects without copying their data."""
+    """Calculates summary information for a list of Student objects."""
 
     def __init__(self, students):
-        students = list(students)  # a list of REFERENCES to the same student objects
-        if not students:
-            raise ValueError("PerformanceAnalyzer needs at least one student.")
-        for student in students:
-            if not isinstance(student, Student):
-                raise TypeError(f"Expected Student objects, got {type(student).__name__}.")
-        self._students = students
+        if len(students) == 0:
+            raise ValueError("The student list cannot be empty")
+        self.students = students
 
     def highest_average(self):
-        """Return the Student object with the highest average."""
-        return max(self._students, key=lambda student: student.average_score)
+        highest = self.students[0]
+        for student in self.students:
+            if student.get_average_score() > highest.get_average_score():
+                highest = student
+        return highest
 
     def lowest_average(self):
-        """Return the Student object with the lowest average."""
-        return min(self._students, key=lambda student: student.average_score)
+        lowest = self.students[0]
+        for student in self.students:
+            if student.get_average_score() < lowest.get_average_score():
+                lowest = student
+        return lowest
 
     def class_average(self):
-        """Return the average of all student averages, rounded to 2 decimals."""
-        total = sum(student.average_score for student in self._students)
-        return round(total / len(self._students), 2)
-
-    def grade_distribution(self):
-        """Return how many students got each letter grade."""
-        distribution = {grade: 0 for grade in ("A", "B", "C", "D", "F")}
-        for student in self._students:
-            distribution[student.get_grade()] += 1
-        return distribution
+        total = 0
+        for student in self.students:
+            total = total + student.get_average_score()
+        return round(total / len(self.students), 2)
 
     def generate_report(self):
-        """Return the full report: every student followed by the class summary."""
-        divider = "=" * 64
-        thin = "-" * 64
-        sections = [divider, "STUDENT PERFORMANCE REPORT".center(64), divider]
+        report_lines = []
+        report_lines.append("STUDENT PERFORMANCE REPORT")
+        report_lines.append("=" * 40)
 
-        for number, student in enumerate(self._students, start=1):
-            sections.append(f"Student {number} of {len(self._students)}")
-            sections.append(student.generate_report())  # polymorphism: each type reports itself
-            sections.append(thin)
+        for student in self.students:
+            # The method used depends on the actual student object.
+            report_lines.append(student.generate_report())
+            report_lines.append("-" * 40)
 
         highest = self.highest_average()
         lowest = self.lowest_average()
-        scholars = [s for s in self._students if isinstance(s, ScholarshipStudent)]
-        eligible = [s for s in scholars if s.is_eligible()]
-        distribution = ", ".join(f"{g}: {n}" for g, n in self.grade_distribution().items())
 
-        sections += [
-            "CLASS PERFORMANCE SUMMARY".center(64),
-            thin,
-            f"Number of students    : {len(self._students)}",
-            f"Highest average       : {highest.calculate_average():.2f} - {highest.full_name} ({highest.student_id})",
-            f"Lowest average        : {lowest.calculate_average():.2f} - {lowest.full_name} ({lowest.student_id})",
-            f"Overall class average : {self.class_average():.2f}",
-            f"Grade distribution    : {distribution}",
-            f"Scholarship holders   : {len(scholars)} (eligible: {len(eligible)}, not eligible: {len(scholars) - len(eligible)})",
-            divider,
-        ]
-        return "\n".join(sections)
-
-    def save_report(self, file_path):
-        """Write the report to a text file."""
-        Path(file_path).write_text(self.generate_report(), encoding="utf-8")
+        report_lines.append("CLASS SUMMARY")
+        report_lines.append("Number of students: " + str(len(self.students)))
+        report_lines.append(
+            "Highest average: {0} ({1})".format(
+                highest.get_full_name(), highest.calculate_average()
+            )
+        )
+        report_lines.append(
+            "Lowest average: {0} ({1})".format(
+                lowest.get_full_name(), lowest.calculate_average()
+            )
+        )
+        report_lines.append("Class average: " + str(self.class_average()))
+        return "\n".join(report_lines)
