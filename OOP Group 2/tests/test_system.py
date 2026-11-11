@@ -4,9 +4,11 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from transport_system import (
-    BookingStatus, Bus, Driver, Passenger, PaymentMethod, PaymentStatus,
-    Route, TransportSystem, TripStatus,
+    BookingStatus, Bus, Dispatcher, Driver, Fleet, MaintenanceRecord,
+    Passenger, PaymentMethod, PaymentStatus, Route, Stop, TransportSystem,
+    TripStatus,
 )
+from transport_system.models import Person, Vehicle
 
 
 class TransportSystemTests(unittest.TestCase):
@@ -18,12 +20,17 @@ class TransportSystemTests(unittest.TestCase):
                                       license_number="DL-1",
                                       license_expiry=date.today() + timedelta(days=365),
                                       years_experience=5))
+        self.system.add_dispatcher(Dispatcher("DP1", "Grace Achieng", "+254700000004",
+                                               employee_id="E1", shift="Day"))
+        self.system.add_fleet(Fleet("F1", "Nairobi Fleet", "Nairobi Depot"))
         self.system.add_vehicle(Bus("V1", "KDA 123A", "Isuzu", "NQR", 2,
-                                     has_air_conditioning=True, luggage_capacity_kg=500))
-        self.system.add_route(Route("R1", "Nairobi", "Nakuru", 160, 150, 850.0))
+                                     has_air_conditioning=True, luggage_capacity_kg=500), "F1")
+        stops = [Stop("S1", "Nairobi Terminal", "Nairobi"),
+                 Stop("S2", "Nakuru Terminal", "Nakuru")]
+        self.system.add_route(Route("R1", "Nairobi", "Nakuru", 160, 150, 850.0, stops))
         start = datetime.now().replace(second=0, microsecond=0) + timedelta(days=2)
         self.trip = self.system.schedule_trip("R1", "V1", "D1", start,
-                                              start + timedelta(hours=3), trip_id="T1")
+                                              start + timedelta(hours=3), "DP1", trip_id="T1")
 
     def test_booking_assigns_distinct_seats_and_cancel_releases_seat(self):
         first = self.system.book_trip("P1", "T1")
@@ -33,6 +40,49 @@ class TransportSystemTests(unittest.TestCase):
         self.system.cancel_booking(first.booking_id)
         replacement = self.system.book_trip("P2", "T1", seat_number=1)
         self.assertEqual(replacement.seat_number, 1)
+
+    def test_abstract_base_classes_and_concrete_roles(self):
+        with self.assertRaises(TypeError):
+            Person("X", "Test Person", "+254700000000")
+        with self.assertRaises(TypeError):
+            Vehicle("X", "KXX 000X", "Make", "Model", 10)
+
+        self.assertEqual(self.system.passengers["P1"].get_role(), "Passenger")
+        self.assertEqual(self.system.drivers["D1"].get_role(), "Driver")
+        self.assertEqual(self.system.vehicles["V1"].get_vehicle_type(), "Bus")
+
+    def test_vehicle_owns_maintenance_history_and_it_survives_save_load(self):
+        record = MaintenanceRecord(
+            "M1", "V1", date.today(), "Oil change", 8500.0,
+            date.today() + timedelta(days=180),
+        )
+        self.system.add_maintenance_record(record)
+        vehicle = self.system.vehicles["V1"]
+        self.assertEqual(vehicle.get_service_history(), [record])
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "transport.json"
+            self.system.save(path)
+            restored = TransportSystem.load(path)
+
+        restored_vehicle = restored.vehicles["V1"]
+        self.assertEqual(len(restored_vehicle.get_service_history()), 1)
+        self.assertEqual(restored_vehicle.get_service_history()[0].record_id, "M1")
+        self.assertIs(restored_vehicle.get_service_history()[0], restored.maintenance_records["M1"])
+
+    def test_route_requires_two_stops_and_trip_requires_dispatcher(self):
+        with self.assertRaisesRegex(ValueError, "at least two stops"):
+            Route("R2", "Nairobi", "Nakuru", 160, 150, 850.0)
+        with self.assertRaisesRegex(ValueError, "Dispatcher"):
+            self.system.schedule_trip(
+                "R1", "V1", "D1", self.trip.departure_time + timedelta(days=1),
+                self.trip.arrival_time + timedelta(days=1), "MISSING",
+            )
+
+    def test_vehicle_cannot_belong_to_two_fleets(self):
+        self.system.add_fleet(Fleet("F2", "Other Fleet", "Westlands Depot"))
+        with self.assertRaisesRegex(ValueError, "already belongs to a fleet"):
+            self.system.add_vehicle(self.system.vehicles["V1"], "F2")
 
     def test_prevents_overbooking_and_duplicate_seat(self):
         self.system.book_trip("P1", "T1", seat_number=1)
@@ -57,13 +107,13 @@ class TransportSystemTests(unittest.TestCase):
         departure = datetime.now() + timedelta(days=3)
         with self.assertRaisesRegex(ValueError, "license"):
             self.system.schedule_trip("R1", "V1", "D1", departure,
-                                      departure + timedelta(hours=2))
+                                      departure + timedelta(hours=2), "DP1")
 
     def test_rejects_overlapping_assignment(self):
         start = self.trip.departure_time + timedelta(minutes=30)
         with self.assertRaisesRegex(ValueError, "overlapping"):
             self.system.schedule_trip("R1", "V1", "D1", start,
-                                      start + timedelta(hours=1))
+                                      start + timedelta(hours=1), "DP1")
 
     def test_trip_lifecycle_updates_vehicle_and_driver(self):
         self.system.start_trip("T1")
@@ -82,6 +132,9 @@ class TransportSystemTests(unittest.TestCase):
             restored = TransportSystem.load(path)
         self.assertIsInstance(restored.vehicles["V1"], Bus)
         self.assertEqual(restored.trips["T1"].departure_time, self.trip.departure_time)
+        self.assertEqual(restored.trips["T1"].dispatcher_id, "DP1")
+        self.assertEqual(restored.fleets["F1"].vehicle_ids, ["V1"])
+        self.assertEqual(len(restored.routes["R1"].stops), 2)
         self.assertEqual(restored.bookings[booking.booking_id].ticket.ticket_number,
                          booking.ticket.ticket_number)
         self.assertEqual(next(iter(restored.payments.values())).status, PaymentStatus.PAID)

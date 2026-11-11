@@ -1,12 +1,9 @@
-"""Application service and JSON persistence for the transport system."""
-from __future__ import annotations
-
+"""Application rules and simple JSON saving for the transport system."""
 import json
 from dataclasses import asdict
 from datetime import date, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, TypeVar
 from uuid import uuid4
 
 from .models import (
@@ -15,233 +12,267 @@ from .models import (
     Ticket, Trip, TripStatus, Vehicle, VehicleStatus,
 )
 
-T = TypeVar("T")
-
 
 def _new_id(prefix: str) -> str:
-    return f"{prefix}-{uuid4().hex[:8].upper()}"
+    return prefix + "-" + uuid4().hex[:6].upper()
 
 
-def _json_default(value: Any) -> Any:
+def _json_value(value):
     if isinstance(value, (date, datetime)):
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
-    raise TypeError(f"Cannot serialize {type(value).__name__}")
+    raise TypeError("Value cannot be saved as JSON")
 
 
+# ==================== PRESENTER: Maryhope ====================
+# TransportSystem holds the main objects used by the program.
 class TransportSystem:
-    """Coordinates trips, bookings, payments, fleets, and maintenance."""
+    def __init__(self):
+        self.passengers = {}
+        self.drivers = {}
+        self.dispatchers = {}
+        self.vehicles = {}
+        self.routes = {}
+        self.fleets = {}
+        self.trips = {}
+        self.bookings = {}
+        self.payments = {}
+        self.maintenance_records = {}
 
-    def __init__(self) -> None:
-        self.passengers: dict[str, Passenger] = {}
-        self.drivers: dict[str, Driver] = {}
-        self.dispatchers: dict[str, Dispatcher] = {}
-        self.vehicles: dict[str, Vehicle] = {}
-        self.routes: dict[str, Route] = {}
-        self.fleets: dict[str, Fleet] = {}
-        self.trips: dict[str, Trip] = {}
-        self.bookings: dict[str, Booking] = {}
-        self.payments: dict[str, Payment] = {}
-        self.maintenance_records: dict[str, MaintenanceRecord] = {}
+    def add_passenger(self, passenger: Passenger):
+        self.passengers[passenger.person_id] = passenger
 
-    @staticmethod
-    def _add(collection: dict[str, T], key: str, value: T) -> T:
-        if key in collection:
-            raise ValueError(f"ID {key} already exists.")
-        collection[key] = value
-        return value
+    def add_driver(self, driver: Driver):
+        self.drivers[driver.person_id] = driver
 
-    def add_passenger(self, passenger: Passenger) -> Passenger:
-        return self._add(self.passengers, passenger.person_id, passenger)
+    def add_dispatcher(self, dispatcher: Dispatcher):
+        self.dispatchers[dispatcher.person_id] = dispatcher
 
-    def add_driver(self, driver: Driver) -> Driver:
-        return self._add(self.drivers, driver.person_id, driver)
+    def add_fleet(self, fleet: Fleet):
+        self.fleets[fleet.fleet_id] = fleet
 
-    def add_dispatcher(self, dispatcher: Dispatcher) -> Dispatcher:
-        return self._add(self.dispatchers, dispatcher.person_id, dispatcher)
+    def add_route(self, route: Route):
+        self.routes[route.route_id] = route
 
-    def add_vehicle(self, vehicle: Vehicle, fleet_id: str | None = None) -> Vehicle:
-        self._add(self.vehicles, vehicle.vehicle_id, vehicle)
-        if fleet_id:
-            self._require(self.fleets, fleet_id, "Fleet").add_vehicle(vehicle)
-        return vehicle
 
-    def add_route(self, route: Route) -> Route:
-        return self._add(self.routes, route.route_id, route)
-
-    def add_fleet(self, fleet: Fleet) -> Fleet:
-        return self._add(self.fleets, fleet.fleet_id, fleet)
-
-    @staticmethod
-    def _require(collection: dict[str, T], key: str, label: str) -> T:
-        try:
-            return collection[key]
-        except KeyError as exc:
-            raise ValueError(f"{label} {key} was not found.") from exc
-
-    @staticmethod
-    def _overlaps(start: datetime, end: datetime, other_start: datetime,
-                  other_end: datetime) -> bool:
-        return start < other_end and other_start < end
+# ==================== PRESENTER: Mitch ====================
+# These methods check the UML relationship counts before creating objects.
+    def add_vehicle(self, vehicle: Vehicle, fleet_id: str):
+        if fleet_id not in self.fleets:
+            raise ValueError("Fleet was not found.")
+        for fleet in self.fleets.values():
+            if vehicle.vehicle_id in fleet.vehicle_ids:
+                raise ValueError("Vehicle already belongs to a fleet.")
+        self.vehicles[vehicle.vehicle_id] = vehicle
+        self.fleets[fleet_id].add_vehicle(vehicle)
 
     def schedule_trip(self, route_id: str, vehicle_id: str, driver_id: str,
                       departure_time: datetime, arrival_time: datetime,
-                      dispatcher_id: str | None = None, trip_id: str | None = None) -> Trip:
-        route = self._require(self.routes, route_id, "Route")
-        vehicle = self._require(self.vehicles, vehicle_id, "Vehicle")
-        driver = self._require(self.drivers, driver_id, "Driver")
-        if dispatcher_id:
-            self._require(self.dispatchers, dispatcher_id, "Dispatcher")
+                      dispatcher_id: str, trip_id: str | None = None):
+        if route_id not in self.routes:
+            raise ValueError("Route was not found.")
+        if vehicle_id not in self.vehicles:
+            raise ValueError("Vehicle was not found.")
+        if driver_id not in self.drivers:
+            raise ValueError("Driver was not found.")
+        if dispatcher_id not in self.dispatchers:
+            raise ValueError("Dispatcher was not found.")
         if arrival_time <= departure_time:
             raise ValueError("Trip arrival must be later than departure.")
+        vehicle = self.vehicles[vehicle_id]
+        driver = self.drivers[driver_id]
         if vehicle.status == VehicleStatus.MAINTENANCE:
-            raise ValueError("A vehicle under maintenance cannot be scheduled.")
+            raise ValueError("A vehicle in maintenance cannot be scheduled.")
         if not driver.is_license_valid(departure_time.date()):
-            raise ValueError("The driver's license is missing or expired by departure date.")
-        if not driver.availability_status:
-            raise ValueError("The driver is marked unavailable.")
+            raise ValueError("The driver's license is missing or expired.")
         for existing in self.trips.values():
             if existing.status not in (TripStatus.SCHEDULED, TripStatus.IN_PROGRESS):
                 continue
-            if not self._overlaps(departure_time, arrival_time,
-                                  existing.departure_time, existing.arrival_time):
-                continue
-            if existing.vehicle_id == vehicle_id:
-                raise ValueError(f"Vehicle {vehicle_id} is already assigned to an overlapping trip.")
-            if existing.driver_id == driver_id:
-                raise ValueError(f"Driver {driver_id} is already assigned to an overlapping trip.")
-        trip = Trip(trip_id or _new_id("TRIP"), route.route_id, vehicle.vehicle_id,
-                    driver.person_id, departure_time, arrival_time, dispatcher_id)
-        return self._add(self.trips, trip.trip_id, trip)
+            overlaps = departure_time < existing.arrival_time and existing.departure_time < arrival_time
+            if overlaps and existing.vehicle_id == vehicle_id:
+                raise ValueError("Vehicle has an overlapping trip.")
+            if overlaps and existing.driver_id == driver_id:
+                raise ValueError("Driver has an overlapping trip.")
+
+        trip = Trip(
+            trip_id or _new_id("TRIP"), route_id, vehicle_id, driver_id,
+            departure_time, arrival_time, dispatcher_id,
+        )
+        self.trips[trip.trip_id] = trip
+        return trip
 
     def available_seats(self, trip_id: str) -> list[int]:
-        trip = self._require(self.trips, trip_id, "Trip")
-        vehicle = self._require(self.vehicles, trip.vehicle_id, "Vehicle")
-        occupied = {b.seat_number for b in self.bookings.values()
-                    if b.trip_id == trip_id and b.status == BookingStatus.CONFIRMED}
-        return [seat for seat in range(1, vehicle.seat_capacity + 1) if seat not in occupied]
+        trip = self.trips[trip_id]
+        vehicle = self.vehicles[trip.vehicle_id]
+        occupied = []
+        for booking in self.bookings.values():
+            if booking.trip_id == trip_id and booking.status == BookingStatus.CONFIRMED:
+                occupied.append(booking.seat_number)
+        seats = []
+        for number in range(1, vehicle.seat_capacity + 1):
+            if number not in occupied:
+                seats.append(number)
+        return seats
 
+
+# ==================== PRESENTER: Jesse ====================
+# This is the main path from a passenger request to a saved Booking object.
     def book_trip(self, passenger_id: str, trip_id: str,
-                  seat_number: int | None = None) -> Booking:
-        passenger = self._require(self.passengers, passenger_id, "Passenger")
-        trip = self._require(self.trips, trip_id, "Trip")
+                  seat_number: int | None = None):
+        if passenger_id not in self.passengers:
+            raise ValueError("Passenger was not found.")
+        if trip_id not in self.trips:
+            raise ValueError("Trip was not found.")
+        trip = self.trips[trip_id]
         if trip.status != TripStatus.SCHEDULED:
-            raise ValueError("Bookings are only available for scheduled trips.")
-        open_seats = self.available_seats(trip_id)
-        if not open_seats:
-            raise ValueError("This trip is fully booked.")
-        if seat_number is None:
-            seat_number = open_seats[0]
-        elif seat_number not in open_seats:
-            raise ValueError(f"Seat {seat_number} is unavailable or outside the vehicle capacity.")
-        fare = self._require(self.routes, trip.route_id, "Route").calculate_fare()
-        booking = Booking(_new_id("BOOK"), passenger.person_id, trip.trip_id,
-                          datetime.now(), seat_number, fare,
-                          ticket=Ticket(_new_id("TKT"), date.today(), uuid4().hex))
-        return self._add(self.bookings, booking.booking_id, booking)
+            raise ValueError("Only scheduled trips can be booked.")
 
-    def cancel_booking(self, booking_id: str) -> Booking:
-        booking = self._require(self.bookings, booking_id, "Booking")
-        if booking.status == BookingStatus.CANCELLED:
-            raise ValueError("Booking is already cancelled.")
+        free_seats = self.available_seats(trip_id)
+        if not free_seats:
+            raise ValueError("There are no seats left.")
+        if seat_number is None:
+            seat_number = free_seats[0]
+        if seat_number not in free_seats:
+            raise ValueError("That seat is already taken or not valid.")
+
+        fare = self.routes[trip.route_id].calculate_fare()
+        ticket = Ticket(_new_id("TICKET"), date.today(), "SAMPLE-QR")
+        booking_id = _new_id("BOOKING")
+        booking = Booking(booking_id, passenger_id, trip_id, datetime.now(),
+                          seat_number, fare, ticket=ticket)
+        self.bookings[booking_id] = booking
+        return booking
+
+    def cancel_booking(self, booking_id: str):
+        booking = self.bookings[booking_id]
         booking.cancel()
         for payment in self.payments.values():
             if payment.booking_id == booking_id:
                 payment.refund()
         return booking
 
-    def process_payment(self, booking_id: str, method: PaymentMethod,
-                        amount: float | None = None) -> Payment:
-        booking = self._require(self.bookings, booking_id, "Booking")
+
+# ==================== PRESENTER: Leon ====================
+# This creates a local payment record; it does not contact a real provider.
+    def process_payment(self, booking_id: str, method: PaymentMethod):
+        booking = self.bookings[booking_id]
         if booking.status != BookingStatus.CONFIRMED:
-            raise ValueError("Payment cannot be made for a cancelled booking.")
-        if any(p.booking_id == booking_id and p.status == PaymentStatus.PAID
-               for p in self.payments.values()):
-            raise ValueError("This booking has already been paid.")
-        amount = booking.total_amount if amount is None else round(amount, 2)
-        if amount != booking.total_amount:
-            raise ValueError(f"Payment must equal the fare of {booking.total_amount:.2f}.")
-        payment = Payment(_new_id("PAY"), booking_id, amount, method)
-        if not payment.process_payment():
-            raise ValueError("Payment failed.")
-        self._add(self.payments, payment.payment_id, payment)
-        self.passengers[booking.passenger_id].loyalty_points += int(amount)
+            raise ValueError("A cancelled booking cannot be paid for.")
+        payment = Payment(_new_id("PAYMENT"), booking_id,
+                          booking.total_amount, method)
+        payment.process_payment()
+        self.payments[payment.payment_id] = payment
+        self.passengers[booking.passenger_id].loyalty_points += int(payment.amount)
         return payment
 
-    def start_trip(self, trip_id: str) -> Trip:
-        trip = self._require(self.trips, trip_id, "Trip")
+
+# ==================== PRESENTER: Jackson ====================
+# These functions call the Trip methods and update related objects.
+    def start_trip(self, trip_id: str):
+        trip = self.trips[trip_id]
         trip.start()
         self.vehicles[trip.vehicle_id].update_status(VehicleStatus.IN_SERVICE)
         self.drivers[trip.driver_id].availability_status = False
         return trip
 
-    def complete_trip(self, trip_id: str) -> Trip:
-        trip = self._require(self.trips, trip_id, "Trip")
+    def complete_trip(self, trip_id: str):
+        trip = self.trips[trip_id]
         trip.complete()
-        self.vehicles[trip.vehicle_id].mileage_km += self.routes[trip.route_id].distance_km
-        self.vehicles[trip.vehicle_id].update_status(VehicleStatus.AVAILABLE)
+        route = self.routes[trip.route_id]
+        vehicle = self.vehicles[trip.vehicle_id]
+        vehicle.mileage_km += route.distance_km
+        vehicle.update_status(VehicleStatus.AVAILABLE)
         self.drivers[trip.driver_id].availability_status = True
         return trip
 
-    def cancel_trip(self, trip_id: str) -> Trip:
-        trip = self._require(self.trips, trip_id, "Trip")
-        trip.cancel()
-        for booking in self.bookings.values():
-            if booking.trip_id == trip_id and booking.status == BookingStatus.CONFIRMED:
-                self.cancel_booking(booking.booking_id)
-        return trip
 
-    def add_maintenance_record(self, record: MaintenanceRecord) -> MaintenanceRecord:
-        vehicle = self._require(self.vehicles, record.vehicle_id, "Vehicle")
-        self._add(self.maintenance_records, record.record_id, record)
+# Maintenance records are stored on their vehicle and in the system index.
+    def add_maintenance_record(self, record: MaintenanceRecord):
+        vehicle = self.vehicles[record.vehicle_id]
+        vehicle.maintenance_records.append(record)
+        self.maintenance_records[record.record_id] = record
         vehicle.update_status(VehicleStatus.MAINTENANCE)
         return record
 
-    def complete_maintenance(self, record_id: str) -> MaintenanceRecord:
-        record = self._require(self.maintenance_records, record_id, "Maintenance record")
-        record.complete_service()
-        vehicle = self.vehicles[record.vehicle_id]
-        if not any(r.vehicle_id == vehicle.vehicle_id and r.next_service_date is not None
-                   for r in self.maintenance_records.values()):
-            vehicle.update_status(VehicleStatus.AVAILABLE)
-        return record
-
-    def save(self, path: str | Path) -> None:
-        collections = ("passengers", "drivers", "dispatchers", "vehicles", "routes",
-                       "fleets", "trips", "bookings", "payments", "maintenance_records")
-        payload = {name: [asdict(item) for item in getattr(self, name).values()]
-                   for name in collections}
-        Path(path).write_text(json.dumps(payload, default=_json_default, indent=2), encoding="utf-8")
+    def save(self, file_path):
+        """Write the current objects to a JSON file."""
+        data = {}
+        names = ["passengers", "drivers", "dispatchers", "vehicles", "routes",
+                 "fleets", "trips", "bookings", "payments", "maintenance_records"]
+        for name in names:
+            data[name] = []
+            for item in getattr(self, name).values():
+                item_data = asdict(item)
+                if name == "vehicles":
+                    item_data.pop("maintenance_records", None)
+                data[name].append(item_data)
+        Path(file_path).write_text(
+            json.dumps(data, default=_json_value, indent=2), encoding="utf-8"
+        )
 
     @classmethod
-    def load(cls, path: str | Path) -> TransportSystem:
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+    def load(cls, file_path):
+        """Rebuild the stored objects from a JSON file."""
+        path = Path(file_path)
+        if not path.exists():
+            return cls()
+        data = json.loads(path.read_text(encoding="utf-8"))
         system = cls()
-        def add_all(section: str, factory: Any, key: str, convert: Any = None) -> None:
-            for raw in data.get(section, []):
-                item = factory(raw)
-                if convert:
-                    item = convert(item)
-                getattr(system, section)[getattr(item, key)] = item
 
-        add_all("passengers", lambda d: Passenger(**{**d, "preferred_payment": PaymentMethod(d.get("preferred_payment", "mpesa"))}), "person_id")
-        add_all("drivers", lambda d: Driver(**{**d, "license_expiry": date.fromisoformat(d["license_expiry"])}), "person_id")
-        add_all("dispatchers", Dispatcher, "person_id")
-        def make_vehicle(d: dict[str, Any]) -> Vehicle:
-            d = dict(d)
-            d["status"] = VehicleStatus(d.get("status", "available"))
-            cls_name = d.pop("vehicle_type", None)
-            if "has_air_conditioning" in d:
-                return Bus(**d)
-            if "permit_number" in d:
-                return Minibus(**d)
-            return Vehicle(**d)
-        add_all("vehicles", make_vehicle, "vehicle_id")
-        add_all("routes", lambda d: Route(**{**d, "stops": [Stop(**s) for s in d.get("stops", [])]}), "route_id")
-        add_all("fleets", Fleet, "fleet_id")
-        add_all("trips", lambda d: Trip(**{**d, "departure_time": datetime.fromisoformat(d["departure_time"]), "arrival_time": datetime.fromisoformat(d["arrival_time"]), "status": TripStatus(d.get("status", "scheduled"))}), "trip_id")
-        add_all("bookings", lambda d: Booking(**{**d, "booking_date": datetime.fromisoformat(d["booking_date"]), "status": BookingStatus(d.get("status", "confirmed")), "ticket": Ticket(**{**d["ticket"], "issue_date": date.fromisoformat(d["ticket"]["issue_date"])}) if d.get("ticket") else None}), "booking_id")
-        add_all("payments", lambda d: Payment(**{**d, "method": PaymentMethod(d["method"]), "status": PaymentStatus(d.get("status", "pending")), "paid_at": datetime.fromisoformat(d["paid_at"]) if d.get("paid_at") else None}), "payment_id")
-        add_all("maintenance_records", lambda d: MaintenanceRecord(**{**d, "service_date": date.fromisoformat(d["service_date"]), "next_service_date": date.fromisoformat(d["next_service_date"]) if d.get("next_service_date") else None}), "record_id")
+        for row in data.get("passengers", []):
+            row["preferred_payment"] = PaymentMethod(row.get("preferred_payment", "mpesa"))
+            person = Passenger(**row)
+            system.passengers[person.person_id] = person
+        for row in data.get("drivers", []):
+            row["license_expiry"] = date.fromisoformat(row["license_expiry"])
+            person = Driver(**row)
+            system.drivers[person.person_id] = person
+        for row in data.get("dispatchers", []):
+            person = Dispatcher(**row)
+            system.dispatchers[person.person_id] = person
+        for row in data.get("fleets", []):
+            fleet = Fleet(**row)
+            system.fleets[fleet.fleet_id] = fleet
+        for row in data.get("routes", []):
+            row["stops"] = [Stop(**stop) for stop in row.get("stops", [])]
+            route = Route(**row)
+            system.routes[route.route_id] = route
+        for row in data.get("vehicles", []):
+            row["status"] = VehicleStatus(row.get("status", "available"))
+            if "has_air_conditioning" in row:
+                vehicle = Bus(**row)
+            else:
+                vehicle = Minibus(**row)
+            system.vehicles[vehicle.vehicle_id] = vehicle
+        for row in data.get("trips", []):
+            row["departure_time"] = datetime.fromisoformat(row["departure_time"])
+            row["arrival_time"] = datetime.fromisoformat(row["arrival_time"])
+            row["status"] = TripStatus(row.get("status", "scheduled"))
+            trip = Trip(**row)
+            system.trips[trip.trip_id] = trip
+        for row in data.get("maintenance_records", []):
+            row["service_date"] = date.fromisoformat(row["service_date"])
+            if row.get("next_service_date"):
+                row["next_service_date"] = date.fromisoformat(row["next_service_date"])
+            record = MaintenanceRecord(**row)
+            system.maintenance_records[record.record_id] = record
+            if record.vehicle_id in system.vehicles:
+                system.vehicles[record.vehicle_id].maintenance_records.append(record)
+        for row in data.get("bookings", []):
+            row["booking_date"] = datetime.fromisoformat(row["booking_date"])
+            row["status"] = BookingStatus(row.get("status", "confirmed"))
+            if row.get("ticket"):
+                ticket_data = row["ticket"]
+                ticket_data["issue_date"] = date.fromisoformat(ticket_data["issue_date"])
+                row["ticket"] = Ticket(**ticket_data)
+            booking = Booking(**row)
+            system.bookings[booking.booking_id] = booking
+        for row in data.get("payments", []):
+            row["method"] = PaymentMethod(row["method"])
+            row["status"] = PaymentStatus(row.get("status", "pending"))
+            if row.get("paid_at"):
+                row["paid_at"] = datetime.fromisoformat(row["paid_at"])
+            payment = Payment(**row)
+            system.payments[payment.payment_id] = payment
         return system

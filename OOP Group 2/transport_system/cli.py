@@ -1,132 +1,139 @@
-"""Simple interactive CLI for the Transport Management System."""
-from datetime import date, datetime
-from pathlib import Path
+"""Console menu for the transport management system."""
+from datetime import date, datetime, timedelta
 
-from .models import Bus, Driver, Passenger, PaymentMethod, Route, VehicleStatus
+from .models import Bus, Dispatcher, Driver, Fleet, Passenger, PaymentMethod, Route, Stop
 from .system import TransportSystem
 
-DATA_FILE = Path("transport_data.json")
 
-
-def ask(prompt: str) -> str:
-    return input(prompt).strip()
-
-
-def run() -> None:
-    system = TransportSystem.load(DATA_FILE) if DATA_FILE.exists() else TransportSystem()
-    actions = {
-        "1": ("Add passenger", lambda: add_passenger(system)),
-        "2": ("Add driver", lambda: add_driver(system)),
-        "3": ("Add bus", lambda: add_bus(system)),
-        "4": ("Add route", lambda: add_route(system)),
-        "5": ("Schedule trip", lambda: schedule_trip(system)),
-        "6": ("List trips", lambda: list_trips(system)),
-        "7": ("Book a seat", lambda: book_seat(system)),
-        "8": ("List bookings", lambda: list_bookings(system)),
-        "9": ("Pay for booking", lambda: pay_booking(system)),
-        "10": ("Cancel booking", lambda: cancel_booking(system)),
-    }
+# ==================== PRESENTER: Maryhope ====================
+# This menu collects simple input and sends it to the system coordinator.
+def run():
+    system = TransportSystem.load("transport_data.json")
     print("Transport Management System")
+
     while True:
-        print("\n" + "\n".join(f"{key}. {label}" for key, (label, _) in actions.items()))
+        print("\n1. Add fleet")
+        print("2. Add bus")
+        print("3. Add passenger")
+        print("4. Add driver")
+        print("5. Add dispatcher")
+        print("6. Add route")
+        print("7. Schedule trip")
+        print("8. Book a seat")
+        print("9. Pay for a booking")
+        print("10. List trips")
+        print("11. Start or complete a trip")
+        print("12. Cancel a booking")
         print("0. Save and exit")
-        choice = ask("> ")
-        if choice == "0":
-            system.save(DATA_FILE)
-            print(f"Saved system data to {DATA_FILE.resolve()}")
-            return
-        if choice not in actions:
-            print("Choose a listed option.")
-            continue
+        choice = input("> ").strip()
+
         try:
-            actions[choice][1]()
-            system.save(DATA_FILE)
-        except (ValueError, KeyError) as exc:
-            print(f"Could not complete that action: {exc}")
+            if choice == "1":
+                fleet = Fleet(input("Fleet ID: "), input("Name: "), input("Depot: "))
+                system.add_fleet(fleet)
+                print("Fleet added.")
+
+            elif choice == "2":
+                bus = Bus(
+                    input("Bus ID: "), input("Registration: "),
+                    input("Make: "), input("Model: "),
+                    int(input("Seat capacity: ")),
+                )
+                system.add_vehicle(bus, input("Fleet ID: "))
+                print("Bus added to fleet.")
+
+            elif choice == "3":
+                passenger = Passenger(
+                    input("Passenger ID: "), input("Name: "), input("Phone: ")
+                )
+                system.add_passenger(passenger)
+                print("Passenger added.")
+
+            elif choice == "4":
+                driver = Driver(
+                    input("Driver ID: "), input("Name: "), input("Phone: "),
+                    license_number=input("License number: "),
+                    license_expiry=date.today() + timedelta(days=365),
+                )
+                system.add_driver(driver)
+                print("Driver added.")
+
+            elif choice == "5":
+                dispatcher = Dispatcher(
+                    input("Dispatcher ID: "), input("Name: "), input("Phone: "),
+                    employee_id=input("Employee ID: "),
+                    shift=input("Shift: "),
+                )
+                system.add_dispatcher(dispatcher)
+                print("Dispatcher added.")
+
+            elif choice == "6":
+                route_id = input("Route ID: ")
+                origin = input("Origin: ")
+                destination = input("Destination: ")
+                first_stop = Stop("STOP-1", origin + " Terminal", origin)
+                last_stop = Stop("STOP-2", destination + " Terminal", destination)
+                route = Route(route_id, origin, destination, 100, 120, 850,
+                              [first_stop, last_stop])
+                system.add_route(route)
+                print("Route added with two stops.")
+
+            elif choice == "7":
+                route_id = input("Route ID: ")
+                vehicle_id = input("Bus ID: ")
+                driver_id = input("Driver ID: ")
+                dispatcher_id = input("Dispatcher ID: ")
+                start = datetime.now() + timedelta(days=1)
+                end = start + timedelta(hours=2)
+                trip = system.schedule_trip(route_id, vehicle_id, driver_id,
+                                            start, end, dispatcher_id)
+                print("Trip added:", trip.trip_id)
+
+            elif choice == "8":
+                passenger_id = input("Passenger ID: ")
+                trip_id = input("Trip ID: ")
+                booking = system.book_trip(passenger_id, trip_id)
+                print("Booking confirmed:", booking.booking_id)
+                print("Seat:", booking.seat_number, "Fare:", booking.total_amount)
+
+            elif choice == "9":
+                booking_id = input("Booking ID: ")
+                print("1. M-Pesa  2. Card  3. Cash")
+                method_choice = input("Payment method: ")
+                methods = {"1": PaymentMethod.MPESA,
+                           "2": PaymentMethod.CARD,
+                           "3": PaymentMethod.CASH}
+                payment = system.process_payment(booking_id, methods[method_choice])
+                print("Payment recorded:", payment.status.value)
+
+            elif choice == "10":
+                for trip in system.trips.values():
+                    print(trip.trip_id, trip.route_id, trip.status.value)
+
+            elif choice == "11":
+                trip_id = input("Trip ID: ")
+                action = input("Type 'start' or 'complete': ").strip().lower()
+                if action == "start":
+                    system.start_trip(trip_id)
+                elif action == "complete":
+                    system.complete_trip(trip_id)
+                print("Trip status updated.")
+
+            elif choice == "12":
+                booking_id = input("Booking ID: ")
+                system.cancel_booking(booking_id)
+                print("Booking cancelled.")
+
+            elif choice == "0":
+                system.save("transport_data.json")
+                print("Data saved. Goodbye.")
+                break
+
+            else:
+                print("Please choose a number from the menu.")
+        except (ValueError, KeyError) as error:
+            print("Could not complete that action:", error)
 
 
-def add_passenger(system: TransportSystem) -> None:
-    passenger = Passenger(ask("Passenger ID: "), ask("Full name: "),
-                          ask("Phone number: "), ask("Email (optional): "))
-    system.add_passenger(passenger)
-    print(f"Added passenger {passenger.person_id}.")
-
-
-def add_driver(system: TransportSystem) -> None:
-    driver = Driver(ask("Driver ID: "), ask("Full name: "), ask("Phone number: "),
-                    ask("Email (optional): "), ask("License number: "),
-                    date.fromisoformat(ask("License expiry (YYYY-MM-DD): ")),
-                    True, int(ask("Years of experience: ")))
-    system.add_driver(driver)
-    print(f"Added driver {driver.person_id}.")
-
-
-def add_bus(system: TransportSystem) -> None:
-    bus = Bus(ask("Vehicle ID: "), ask("Registration number: "), ask("Make: "),
-              ask("Model: "), int(ask("Seat capacity: ")),
-              float(ask("Current mileage (km): ") or "0"), VehicleStatus.AVAILABLE,
-              ask("Air conditioning? (y/n): ").lower() == "y",
-              float(ask("Luggage capacity (kg): ") or "0"))
-    system.add_vehicle(bus)
-    print(f"Added bus {bus.registration_number}.")
-
-
-def add_route(system: TransportSystem) -> None:
-    route = Route(ask("Route ID: "), ask("Origin: "), ask("Destination: "),
-                  float(ask("Distance (km): ")), int(ask("Estimated duration (minutes): ")),
-                  float(ask("Base fare: ")))
-    system.add_route(route)
-    print(f"Added route {route.origin} → {route.destination} ({route.route_id}).")
-
-
-def schedule_trip(system: TransportSystem) -> None:
-    departure = datetime.fromisoformat(ask("Departure (YYYY-MM-DD HH:MM): "))
-    arrival = datetime.fromisoformat(ask("Arrival (YYYY-MM-DD HH:MM): "))
-    trip = system.schedule_trip(ask("Route ID: "), ask("Vehicle ID: "), ask("Driver ID: "),
-                                departure, arrival, trip_id=ask("Trip ID: "))
-    print(f"Scheduled trip {trip.trip_id}.")
-
-
-def list_trips(system: TransportSystem) -> None:
-    if not system.trips:
-        print("No trips scheduled.")
-        return
-    for trip in system.trips.values():
-        route = system.routes[trip.route_id]
-        available = len(system.available_seats(trip.trip_id))
-        capacity = system.vehicles[trip.vehicle_id].seat_capacity
-        print(f"{trip.trip_id} | {route.origin} → {route.destination} | "
-              f"{trip.departure_time:%Y-%m-%d %H:%M} | {trip.status.value} | "
-              f"seats {available}/{capacity} | fare {route.calculate_fare():.2f}")
-
-
-def book_seat(system: TransportSystem) -> None:
-    passenger_id, trip_id = ask("Passenger ID: "), ask("Trip ID: ")
-    requested = ask("Seat number (blank for first available): ")
-    booking = system.book_trip(passenger_id, trip_id, int(requested) if requested else None)
-    print(f"Booking {booking.booking_id} confirmed: seat {booking.seat_number}, "
-          f"fare {booking.total_amount:.2f}, ticket {booking.ticket.ticket_number}.")
-
-
-def list_bookings(system: TransportSystem) -> None:
-    if not system.bookings:
-        print("No bookings yet.")
-        return
-    for booking in system.bookings.values():
-        passenger = system.passengers[booking.passenger_id]
-        print(f"{booking.booking_id} | {passenger.full_name} | trip {booking.trip_id} | "
-              f"seat {booking.seat_number} | {booking.status.value} | "
-              f"{booking.total_amount:.2f}")
-
-
-def pay_booking(system: TransportSystem) -> None:
-    booking_id = ask("Booking ID: ")
-    print("Payment methods: " + ", ".join(method.value for method in PaymentMethod))
-    method = PaymentMethod(ask("Method: ").lower())
-    payment = system.process_payment(booking_id, method)
-    print(f"Payment {payment.payment_id} received ({payment.amount:.2f}, {method.value}).")
-
-
-def cancel_booking(system: TransportSystem) -> None:
-    booking = system.cancel_booking(ask("Booking ID: "))
-    print(f"Booking {booking.booking_id} cancelled. Paid amounts were refunded where applicable.")
+if __name__ == "__main__":
+    run()
