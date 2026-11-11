@@ -117,6 +117,8 @@ def run():
                     system.start_trip(trip_id)
                 elif action == "complete":
                     system.complete_trip(trip_id)
+                else:
+                    raise ValueError("Choose 'start' or 'complete'.")
                 print("Trip status updated.")
 
             elif choice == "12":

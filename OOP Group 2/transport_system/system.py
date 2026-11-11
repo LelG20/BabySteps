@@ -41,18 +41,28 @@ class TransportSystem:
         self.maintenance_records = {}
 
     def add_passenger(self, passenger: Passenger):
+        if passenger.person_id in self.passengers:
+            raise ValueError("Passenger ID already exists.")
         self.passengers[passenger.person_id] = passenger
 
     def add_driver(self, driver: Driver):
+        if driver.person_id in self.drivers:
+            raise ValueError("Driver ID already exists.")
         self.drivers[driver.person_id] = driver
 
     def add_dispatcher(self, dispatcher: Dispatcher):
+        if dispatcher.person_id in self.dispatchers:
+            raise ValueError("Dispatcher ID already exists.")
         self.dispatchers[dispatcher.person_id] = dispatcher
 
     def add_fleet(self, fleet: Fleet):
+        if fleet.fleet_id in self.fleets:
+            raise ValueError("Fleet ID already exists.")
         self.fleets[fleet.fleet_id] = fleet
 
     def add_route(self, route: Route):
+        if route.route_id in self.routes:
+            raise ValueError("Route ID already exists.")
         self.routes[route.route_id] = route
 
 
@@ -64,6 +74,8 @@ class TransportSystem:
         for fleet in self.fleets.values():
             if vehicle.vehicle_id in fleet.vehicle_ids:
                 raise ValueError("Vehicle already belongs to a fleet.")
+        if vehicle.vehicle_id in self.vehicles:
+            raise ValueError("Vehicle ID already exists.")
         self.vehicles[vehicle.vehicle_id] = vehicle
         self.fleets[fleet_id].add_vehicle(vehicle)
 
@@ -82,8 +94,10 @@ class TransportSystem:
             raise ValueError("Trip arrival must be later than departure.")
         vehicle = self.vehicles[vehicle_id]
         driver = self.drivers[driver_id]
-        if vehicle.status == VehicleStatus.MAINTENANCE:
-            raise ValueError("A vehicle in maintenance cannot be scheduled.")
+        if vehicle.status != VehicleStatus.AVAILABLE:
+            raise ValueError("Vehicle is not available for scheduling.")
+        if not driver.availability_status:
+            raise ValueError("Driver is not available for scheduling.")
         if not driver.is_license_valid(departure_time.date()):
             raise ValueError("The driver's license is missing or expired.")
         for existing in self.trips.values():
@@ -95,6 +109,8 @@ class TransportSystem:
             if overlaps and existing.driver_id == driver_id:
                 raise ValueError("Driver has an overlapping trip.")
 
+        if trip_id and trip_id in self.trips:
+            raise ValueError("Trip ID already exists.")
         trip = Trip(
             trip_id or _new_id("TRIP"), route_id, vehicle_id, driver_id,
             departure_time, arrival_time, dispatcher_id,
@@ -137,10 +153,12 @@ class TransportSystem:
             raise ValueError("That seat is already taken or not valid.")
 
         fare = self.routes[trip.route_id].calculate_fare()
-        ticket = Ticket(_new_id("TICKET"), date.today(), "SAMPLE-QR")
+        ticket = Ticket()
+        ticket.generate_ticket()
         booking_id = _new_id("BOOKING")
         booking = Booking(booking_id, passenger_id, trip_id, datetime.now(),
                           seat_number, fare, ticket=ticket)
+        booking.confirm()
         self.bookings[booking_id] = booking
         return booking
 
@@ -159,9 +177,13 @@ class TransportSystem:
         booking = self.bookings[booking_id]
         if booking.status != BookingStatus.CONFIRMED:
             raise ValueError("A cancelled booking cannot be paid for.")
+        for payment in self.payments.values():
+            if payment.booking_id == booking_id and payment.status == PaymentStatus.PAID:
+                raise ValueError("This booking already has a completed payment.")
         payment = Payment(_new_id("PAYMENT"), booking_id,
                           booking.total_amount, method)
-        payment.process_payment()
+        if not payment.process_payment():
+            raise ValueError("Payment amount must be greater than zero.")
         self.payments[payment.payment_id] = payment
         self.passengers[booking.passenger_id].loyalty_points += int(payment.amount)
         return payment
@@ -171,6 +193,10 @@ class TransportSystem:
 # These functions call the Trip methods and update related objects.
     def start_trip(self, trip_id: str):
         trip = self.trips[trip_id]
+        if self.vehicles[trip.vehicle_id].status != VehicleStatus.AVAILABLE:
+            raise ValueError("Vehicle is not available to start this trip.")
+        if not self.drivers[trip.driver_id].availability_status:
+            raise ValueError("Driver is not available to start this trip.")
         trip.start()
         self.vehicles[trip.vehicle_id].update_status(VehicleStatus.IN_SERVICE)
         self.drivers[trip.driver_id].availability_status = False
@@ -182,17 +208,43 @@ class TransportSystem:
         route = self.routes[trip.route_id]
         vehicle = self.vehicles[trip.vehicle_id]
         vehicle.mileage_km += route.distance_km
-        vehicle.update_status(VehicleStatus.AVAILABLE)
+        has_open_service = False
+        for record in vehicle.maintenance_records:
+            if not record.service_completed:
+                has_open_service = True
+        if has_open_service:
+            vehicle.update_status(VehicleStatus.MAINTENANCE)
+        else:
+            vehicle.update_status(VehicleStatus.AVAILABLE)
         self.drivers[trip.driver_id].availability_status = True
         return trip
 
 
 # Maintenance records are stored on their vehicle and in the system index.
     def add_maintenance_record(self, record: MaintenanceRecord):
+        if record.record_id in self.maintenance_records:
+            raise ValueError("Maintenance record ID already exists.")
         vehicle = self.vehicles[record.vehicle_id]
+        for trip in self.trips.values():
+            if trip.vehicle_id == record.vehicle_id and trip.status in (
+                TripStatus.SCHEDULED, TripStatus.IN_PROGRESS
+            ):
+                raise ValueError("Cannot add maintenance while the vehicle has an active trip.")
         vehicle.maintenance_records.append(record)
         self.maintenance_records[record.record_id] = record
         vehicle.update_status(VehicleStatus.MAINTENANCE)
+        return record
+
+    def complete_maintenance(self, record_id: str):
+        record = self.maintenance_records[record_id]
+        record.complete_service()
+        vehicle = self.vehicles[record.vehicle_id]
+        has_open_service = False
+        for other_record in vehicle.maintenance_records:
+            if not other_record.service_completed:
+                has_open_service = True
+        if not has_open_service:
+            vehicle.update_status(VehicleStatus.AVAILABLE)
         return record
 
     def save(self, file_path):
