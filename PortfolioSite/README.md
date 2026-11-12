@@ -13,6 +13,7 @@ A beginner portfolio project built with HTML, CSS, JavaScript, PHP, and MySQL. I
 | `config.php` | Local database connection settings used by `contact.php`. The included values are common XAMPP defaults. |
 | `database.sql` | Creates the `babystep_portfolio` database and its `contact_messages` table. Import it with phpMyAdmin. |
 | `SETUP-XAMPP.md` | A short XAMPP setup checklist. |
+| `CODE-NOTES.md` | Beginner-friendly notes explaining how the HTML, CSS, JavaScript, PHP, and database work together. |
 
 ## How the page works
 

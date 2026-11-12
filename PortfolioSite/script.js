@@ -1,7 +1,8 @@
-// Open and close the mobile navigation menu.
+// querySelector finds the first page element with the matching ID.
 const menuButton = document.querySelector("#menu-toggle");
 const navigationLinks = document.querySelector("#primary-menu");
 
+// Keep the menu's visual state and accessibility labels in sync.
 function setMenuOpen(isOpen) {
     if (!menuButton || !navigationLinks) {
         return;
@@ -14,17 +15,20 @@ function setMenuOpen(isOpen) {
 }
 
 if (menuButton && navigationLinks) {
+    // Listen for a click and switch to the opposite open/closed state.
     menuButton.addEventListener("click", function () {
         const menuIsOpen = menuButton.getAttribute("aria-expanded") === "true";
         setMenuOpen(!menuIsOpen);
     });
 
+    // Close the menu after a visitor chooses a navigation link.
     navigationLinks.querySelectorAll("a").forEach(function (link) {
         link.addEventListener("click", function () {
             setMenuOpen(false);
         });
     });
 
+    // Escape is a quick keyboard way to close the open menu.
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape") {
             setMenuOpen(false);
@@ -38,7 +42,7 @@ if (menuButton && navigationLinks) {
     });
 }
 
-// Show a different beginner-friendly learning tip each time the button is clicked.
+// Store several tips in an array; the index chooses which one to show next.
 const learningTipButton = document.querySelector("#learning-tip-button");
 const learningTip = document.querySelector("#learning-tip");
 const learningTips = [
@@ -56,6 +60,7 @@ function showNextLearningTip() {
 
     learningTip.textContent = learningTips[nextTipIndex];
     learningTip.hidden = false;
+    // Remainder (%) wraps the index back to zero after the last tip.
     nextTipIndex = (nextTipIndex + 1) % learningTips.length;
 }
 
@@ -63,11 +68,12 @@ if (learningTipButton) {
     learningTipButton.addEventListener("click", showNextLearningTip);
 }
 
-// Check required fields and the email format before sending the form to PHP.
+// Check required fields and email format before the browser sends the form to PHP.
 const contactForm = document.querySelector("#contact-form");
 const formStatus = document.querySelector("#form-status");
 
 function validateContactForm(event) {
+    // Select only inputs marked required; the optional subject is skipped.
     const requiredFields = contactForm.querySelectorAll("[required]");
     let firstEmptyField = null;
 
@@ -80,6 +86,7 @@ function validateContactForm(event) {
     });
 
     if (firstEmptyField) {
+        // Stop submission so the visitor can fix the first missing value.
         event.preventDefault();
         firstEmptyField.setAttribute("aria-invalid", "true");
         formStatus.textContent = "Please complete all required fields.";
@@ -89,6 +96,7 @@ function validateContactForm(event) {
 
     const emailField = contactForm.querySelector("#contact-email");
     if (!emailField.checkValidity()) {
+        // type="email" gives the browser a built-in email format check.
         event.preventDefault();
         emailField.setAttribute("aria-invalid", "true");
         formStatus.textContent = "Please enter a valid email address.";
@@ -100,6 +108,7 @@ function validateContactForm(event) {
 }
 
 if (contactForm && formStatus) {
+    // A valid form continues to contact.php; invalid data stays on this page.
     contactForm.addEventListener("submit", validateContactForm);
 
     contactForm.addEventListener("input", function (event) {

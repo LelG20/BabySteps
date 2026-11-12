@@ -4,6 +4,7 @@ declare(strict_types=1);
 function showResult(int $status, string $heading, string $message): void
 {
     http_response_code($status);
+    // Escape text before placing it in HTML so it is displayed as text, not markup.
     ?>
     <!DOCTYPE html>
     <html lang="en">
@@ -28,6 +29,7 @@ function showResult(int $status, string $heading, string $message): void
     exit;
 }
 
+// Only accept a form submission sent with the POST method.
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Allow: POST');
     showResult(405, 'Method not allowed', 'Please send your message using the contact form.');
@@ -35,12 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 function postedText(string $key): string
 {
+    // Read a text field safely and remove spaces from its beginning and end.
     $value = $_POST[$key] ?? '';
     return is_string($value) ? trim($value) : '';
 }
 
 function textLength(string $value): int
 {
+    // Count UTF-8 characters when possible; use strlen as a fallback.
     return function_exists('mb_strlen') ? mb_strlen($value, 'UTF-8') : strlen($value);
 }
 
@@ -49,6 +53,7 @@ $email = postedText('email');
 $subject = postedText('subject');
 $message = postedText('message');
 
+// Check the data on the server too; browser checks can be bypassed.
 if ($name === '' || $email === '' || $message === '') {
     showResult(422, 'Please complete the required fields', 'Your name, email address, and message are required. The subject is optional.');
 }
@@ -64,6 +69,7 @@ if (textLength($name) > 120
     showResult(422, 'Please check your details', 'Use a valid email address and keep each field within its listed length limit.');
 }
 
+// Load local database settings, then build the PDO connection address (DSN).
 $config = require __DIR__ . '/config.php';
 $dsn = sprintf(
     'mysql:host=%s;dbname=%s;charset=%s',
@@ -79,6 +85,7 @@ try {
         PDO::ATTR_EMULATE_PREPARES => false,
     ]);
 
+    // Placeholders keep form text separate from the SQL command.
     $statement = $pdo->prepare(
         'INSERT INTO contact_messages (name, email, subject, message)
          VALUES (:name, :email, :subject, :message)'
@@ -90,6 +97,7 @@ try {
         'message' => $message,
     ]);
 } catch (PDOException $exception) {
+    // Keep technical database details in the server log, not on the public page.
     error_log('Portfolio contact form database error: ' . $exception->getMessage());
     showResult(500, 'Message could not be saved', 'Check that Apache and MySQL are running and that database.sql has been imported in phpMyAdmin.');
 }

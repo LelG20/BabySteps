@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 // Local XAMPP defaults for this class project. Do not publish this file or
 // reuse the blank-password root account on a public server.
+// If set, these environment variables replace the matching local defaults.
 return [
     'host' => getenv('DB_HOST') ?: '127.0.0.1',
     'database' => getenv('DB_NAME') ?: 'babystep_portfolio',

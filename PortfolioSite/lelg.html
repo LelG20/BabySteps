@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <!-- The header links jump to page sections by their IDs. -->
     <header class="site-header">
         <nav class="navigation" aria-label="Main navigation">
             <a class="logo" href="#home">LG</a>
@@ -25,6 +26,7 @@
     </header>
 
     <main>
+        <!-- Hero: the short introduction and its interactive learning-tip button. -->
         <section class="hero" id="home">
             <p class="eyebrow">Student portfolio</p>
             <h1>Hi, I'm <span>Leon Gikonyo.</span></h1>
@@ -36,11 +38,14 @@
             </p>
             <div class="hero-actions">
                 <a class="button" href="#projects">See my work</a>
+                <!-- script.js listens for this click and shows the next tip. -->
                 <button class="button dynamic-button" id="learning-tip-button" type="button">Show a learning tip</button>
             </div>
+            <!-- JavaScript fills this live region; it is hidden until a tip is shown. -->
             <p class="learning-tip" id="learning-tip" aria-live="polite" hidden></p>
         </section>
 
+        <!-- About: a few paragraphs describing the portfolio owner's background. -->
         <section class="content-section" id="about">
             <div class="section-heading">
                 <p class="eyebrow">01 / About me</p>
@@ -69,6 +74,7 @@
             </div>
         </section>
 
+        <!-- Skills: cards summarize the topics currently being learned. -->
         <section class="content-section" id="skills">
             <div class="section-heading">
                 <p class="eyebrow">02 / Skills</p>
@@ -101,6 +107,7 @@
             </p>
         </section>
 
+        <!-- Projects: short descriptions of practice work and learning progress. -->
         <section class="content-section" id="projects">
             <div class="section-heading">
                 <p class="eyebrow">03 / Projects</p>
@@ -133,6 +140,7 @@
             </p>
         </section>
 
+        <!-- The contact form sends data to PHP, which validates and saves it. -->
         <section class="contact-section" id="contact">
             <p class="eyebrow">04 / Contact</p>
             <h2>Let's keep learning.</h2>
@@ -144,6 +152,7 @@
             </p>
             <a class="contact-link" href="mailto:leong@gmail.com">leong@gmail.com</a>
 
+            <!-- novalidate lets script.js show custom messages; PHP validates again on the server. -->
             <form class="contact-form" id="contact-form" action="contact.php" method="post" novalidate>
                 <div class="form-field">
                     <label for="contact-name">Your name <span class="field-indicator">(required)</span></label>
@@ -174,6 +183,7 @@
         <p>&copy; 2026 Leon Gikonyo</p>
         <p>Built with HTML, CSS, and JavaScript.</p>
     </footer>
+    <!-- defer waits until the HTML is parsed before running the external script. -->
     <script src="script.js" defer></script>
 </body>
 </html>
