@@ -26,19 +26,19 @@ The HTML loads `script.js` with `defer`, so the browser runs the script after it
 
 - **Mobile menu:** The Menu button opens and closes the navigation. It also closes after a visitor chooses a link, presses Escape, or widens the browser to desktop size. Its `aria-expanded` and accessible label update as it changes state.
 - **Learning tips:** The “Show a learning tip” button updates the page with the next tip each time it is clicked.
-- **Contact validation:** Before the form is submitted, JavaScript checks that required fields are filled in and that the email address is valid. It shows a message, marks the field, and moves focus to the field that needs attention. After the input is corrected, the message clears.
+- **Contact validation:** Name, email address, and message are required; subject is optional. The name and subject use text inputs, email uses an email input, and the message uses a text area. Before the form is submitted, JavaScript checks that required fields are filled in and that the email address is valid. It shows a message, marks the field, and moves focus to the field that needs attention. After the input is corrected, the message clears.
 
 The JavaScript improves the visitor experience, but it is not the only validation. `contact.php` checks the form data again on the server before saving it.
 
 ### Contact form and database
 
-The contact form in `lelg.html` sends the visitor's name, email, subject, and message to `contact.php` using an HTTP POST request. PHP connects to MySQL with PDO and a prepared SQL statement, then stores the values in the `contact_messages` table. Each record also receives a submission timestamp.
+The contact form in `lelg.html` sends the visitor's name, email, subject, and message to `contact.php` using an HTTP POST request. Name, email, and message are required; subject may be left blank. PHP checks the email format and field lengths, then connects to MySQL with PDO and a prepared SQL statement and stores the values in the `contact_messages` table. Each record also receives a submission timestamp.
 
 This class-project form saves messages in the database; it **does not send email**. View saved submissions by opening the `babystep_portfolio` database and selecting `contact_messages` in phpMyAdmin.
 
 ## Run it locally with XAMPP
 
-PHP pages must be served by Apache. Opening `lelg.html` directly as a file will show the front end, but the PHP form handler will not run that way.
+PHP pages must be served by XAMPP's Apache server. Open the page through the `http://localhost/...` address below—not by double-clicking the file (`file://`) and not through a static preview such as VS Code Live Server. Those methods do not execute PHP. If your browser displays PHP code after submitting, stop using that URL and open the page through XAMPP Apache instead.
 
 1. Copy the `BabySteps` repository folder into XAMPP's `htdocs` folder. For example, on Windows the portfolio page should be at `C:\xampp\htdocs\BabySteps\PortfolioSite\lelg.html`.
 2. Open the XAMPP Control Panel and start **Apache** and **MySQL**.
@@ -56,6 +56,7 @@ If your local MySQL username or password is different from the XAMPP defaults in
 - Click “Show a learning tip” twice and confirm that the displayed text changes.
 - Submit the contact form empty and confirm it asks for the required fields.
 - Enter an invalid email address and confirm it is rejected.
+- Leave Subject blank and confirm the form can still be submitted.
 - Enter valid details and submit while Apache and MySQL are running; confirm the success message and check the database table.
 
 ## Learning concepts demonstrated

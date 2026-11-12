@@ -360,6 +360,12 @@ h1 span {
     font-weight: 600;
 }
 
+.field-indicator {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
 .form-field input,
 .form-field textarea {
     background: #ffffff;

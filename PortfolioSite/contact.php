@@ -49,12 +49,15 @@ $email = postedText('email');
 $subject = postedText('subject');
 $message = postedText('message');
 
-if ($name === '' || $email === '' || $subject === '' || $message === '') {
-    showResult(422, 'Please complete every field', 'Go back to the form and fill in your name, email, subject, and message.');
+if ($name === '' || $email === '' || $message === '') {
+    showResult(422, 'Please complete the required fields', 'Your name, email address, and message are required. The subject is optional.');
 }
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)
-    || textLength($name) > 120
+if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    showResult(422, 'Please check your email address', 'Enter an email address in a valid format, such as you@example.com.');
+}
+
+if (textLength($name) > 120
     || textLength($email) > 254
     || textLength($subject) > 200
     || textLength($message) > 5000) {
