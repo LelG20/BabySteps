@@ -1,0 +1,13 @@
+person_id,full_name,phone_number,email,loyalty_points,preferred_payment
+P-001,Amina Njeri,+254700000001,amina@example.test,2800,mpesa
+P-002,Brian Otieno,+254700000002,brian@example.test,1500,card
+P-003,Faith Wambui,+254700000003,faith@example.test,1700,cash
+P-004,Daniel Kiptoo,+254700000004,daniel@example.test,0,mpesa
+P-005,Grace Atieno,+254700000005,grace.atieno@example.test,2350,card
+P-006,Kevin Mutua,+254700000006,kevin@example.test,600,mpesa
+P-007,Lucy Chebet,+254700000007,lucy@example.test,0,cash
+P-008,Mark Ochieng,+254700000008,mark@example.test,1200,card
+P-009,Nancy Wairimu,+254700000009,nancy@example.test,0,mpesa
+P-010,Oscar Barasa,+254700000010,oscar@example.test,1900,cash
+P-011,Patricia Muthoni,+254700000014,patricia@example.test,0,card
+P-012,Samuel Kibet,+254700000015,samuel@example.test,2400,mpesa

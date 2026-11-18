@@ -1,0 +1,22 @@
+stop_id,route_id,stop_name,location
+S-001,R-001,Nairobi Terminal,Nairobi
+S-002,R-001,Voi Station,Voi
+S-003,R-001,Mombasa Terminal,Mombasa
+S-004,R-002,Nairobi Terminal,Nairobi
+S-005,R-002,Naivasha Stop,Naivasha
+S-006,R-002,Nakuru Terminal,Nakuru
+S-007,R-003,Nairobi Terminal,Nairobi
+S-008,R-003,Nakuru Stop,Nakuru
+S-009,R-003,Kisumu Terminal,Kisumu
+S-010,R-004,Nairobi Terminal,Nairobi
+S-011,R-004,Nakuru Stop,Nakuru
+S-012,R-004,Eldoret Terminal,Eldoret
+S-013,R-005,Mombasa Terminal,Mombasa
+S-014,R-005,Watamu Junction,Watamu
+S-015,R-005,Malindi Terminal,Malindi
+S-016,R-006,Kisumu Terminal,Kisumu
+S-017,R-006,Mumias Stop,Mumias
+S-018,R-006,Kakamega Terminal,Kakamega
+S-019,R-007,Nakuru Terminal,Nakuru
+S-020,R-007,Molo Stop,Molo
+S-021,R-007,Eldoret Terminal,Eldoret

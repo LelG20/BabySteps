@@ -1,0 +1,7 @@
+person_id,full_name,phone_number,email,license_number,license_expiry,availability_status,years_experience
+D-001,James Kamau,+254700000011,james@example.test,DL-001,2035-12-31,true,8
+D-002,Mary Wanjiku,+254700000012,mary@example.test,DL-002,2035-12-31,true,5
+D-003,Peter Ouma,+254700000013,peter@example.test,DL-003,2035-12-31,true,3
+D-004,Esther Naliaka,+254700000016,esther@example.test,DL-004,2036-06-30,true,7
+D-005,Joseph Mwende,+254700000017,joseph@example.test,DL-005,2034-08-31,true,6
+D-006,Samuel Karanja,+254700000018,samuel.k@example.test,DL-006,2037-03-31,true,4

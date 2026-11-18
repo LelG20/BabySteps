@@ -9,6 +9,7 @@ from transport_system import (
     TripStatus,
 )
 from transport_system.models import Person, Vehicle
+from transport_system.customer_cli import get_available_trips, get_or_create_passenger
 
 
 class TransportSystemTests(unittest.TestCase):
@@ -150,9 +151,8 @@ class TransportSystemTests(unittest.TestCase):
         self.assertEqual(vehicle.status.value, "available")
 
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "transport.json"
-            self.system.save(path)
-            restored = TransportSystem.load(path)
+            self.system.save(directory)
+            restored = TransportSystem.load(directory)
 
         restored_vehicle = restored.vehicles["V1"]
         self.assertEqual(len(restored_vehicle.get_service_history()), 1)
@@ -236,13 +236,20 @@ class TransportSystemTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "cannot be cancelled"):
             self.trip.cancel()
 
-    def test_json_round_trip_preserves_domain_objects(self):
+    def test_csv_round_trip_preserves_domain_objects(self):
         booking = self.system.book_trip("P1", "T1")
         self.system.process_payment(booking.booking_id, PaymentMethod.CARD)
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "transport.json"
-            self.system.save(path)
-            restored = TransportSystem.load(path)
+            self.system.save(directory)
+            expected_files = [
+                "passengers.csv", "drivers.csv", "dispatchers.csv", "fleets.csv",
+                "buses.csv", "minibuses.csv", "routes.csv", "stops.csv",
+                "trips.csv", "bookings.csv", "tickets.csv", "payments.csv",
+                "maintenance_records.csv", "driver_issues.csv",
+            ]
+            for file_name in expected_files:
+                self.assertTrue((Path(directory) / file_name).exists(), file_name)
+            restored = TransportSystem.load(directory)
         self.assertIsInstance(restored.vehicles["V1"], Bus)
         self.assertEqual(restored.trips["T1"].departure_time, self.trip.departure_time)
         self.assertEqual(restored.trips["T1"].dispatcher_id, "DP1")
@@ -251,6 +258,30 @@ class TransportSystemTests(unittest.TestCase):
         self.assertEqual(restored.bookings[booking.booking_id].ticket.ticket_number,
                          booking.ticket.ticket_number)
         self.assertEqual(next(iter(restored.payments.values())).status, PaymentStatus.PAID)
+
+    def test_prefilled_csv_data_loads_for_demonstration(self):
+        system = TransportSystem.load()
+        self.assertIn("P-001", system.passengers)
+        self.assertIn("TRIP-001", system.trips)
+        self.assertEqual(system.bookings["BOOK-001"].seat_number, 1)
+        self.assertEqual(system.vehicles["MINI-001"].get_vehicle_type(), "Minibus")
+        self.assertEqual(len(system.routes["R-001"].get_stops()), 3)
+
+    def test_customer_menu_only_lists_scheduled_trips_with_open_seats(self):
+        self.assertEqual(get_available_trips(self.system), [self.trip])
+        self.system.book_trip("P1", "T1")
+        self.system.book_trip("P2", "T1")
+        self.assertEqual(get_available_trips(self.system), [])
+
+    def test_customer_registration_reuses_existing_phone_number(self):
+        passenger = get_or_create_passenger(
+            self.system, "New Customer", "+254700123456", "new@example.test"
+        )
+        same_passenger = get_or_create_passenger(
+            self.system, "Another Name", "+254700123456"
+        )
+        self.assertIs(passenger, same_passenger)
+        self.assertEqual(len(self.system.passengers), 3)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+vehicle_id,registration_number,make,model,seat_capacity,mileage_km,status,has_air_conditioning,luggage_capacity_kg,fleet_id
+BUS-001,KDA 123A,Isuzu,NQR,40,45200.0,available,true,1200.0,F-001
+BUS-002,KDB 456B,Toyota,Coaster,25,31800.0,available,true,700.0,F-002
+BUS-003,KDC 234D,Isuzu,NQR,38,28750.0,available,true,1100.0,F-002
+BUS-004,KDD 567E,Mercedes-Benz,OF 1723,45,19400.0,available,true,1400.0,F-003

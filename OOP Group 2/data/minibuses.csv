@@ -1,0 +1,4 @@
+vehicle_id,registration_number,make,model,seat_capacity,mileage_km,status,permit_number,is_city_route,fleet_id
+MINI-001,KDC 789C,Nissan,Urvan,14,18600.0,available,PSV-001,true,F-001
+MINI-002,KDE 246F,Toyota,Hiace,14,12650.0,available,PSV-002,false,F-001
+MINI-003,KDF 135G,Nissan,Caravan,12,9200.0,available,PSV-003,true,F-002

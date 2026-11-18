@@ -1,0 +1,4 @@
+record_id,vehicle_id,service_date,description,cost,next_service_date,service_completed
+MR-001,MINI-001,2025-12-01,Oil and filter change,8500.0,2027-01-01,true
+MR-002,BUS-003,2026-01-20,Brake inspection and adjustment,18500.0,2027-01-20,true
+MR-003,BUS-004,2026-03-10,Tyre rotation and safety inspection,12000.0,2027-03-10,true

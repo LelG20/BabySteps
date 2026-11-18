@@ -1,0 +1,8 @@
+route_id,origin,destination,distance_km,estimated_duration_min,base_fare
+R-001,Nairobi,Mombasa,480.0,480,1500.0
+R-002,Nairobi,Nakuru,160.0,150,850.0
+R-003,Nairobi,Kisumu,350.0,390,1200.0
+R-004,Nairobi,Eldoret,310.0,360,1300.0
+R-005,Mombasa,Malindi,120.0,150,600.0
+R-006,Kisumu,Kakamega,50.0,75,350.0
+R-007,Nakuru,Eldoret,160.0,180,700.0

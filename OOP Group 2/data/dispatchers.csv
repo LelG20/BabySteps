@@ -1,0 +1,4 @@
+person_id,full_name,phone_number,email,employee_id,shift
+DP-001,Grace Achieng,+254700000021,grace@example.test,EMP-001,Day
+DP-002,David Mwangi,+254700000022,david@example.test,EMP-002,Night
+DP-003,Lucy Njoroge,+254700000023,lucy.njoroge@example.test,EMP-003,Evening
