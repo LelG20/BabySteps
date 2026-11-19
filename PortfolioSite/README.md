@@ -14,6 +14,7 @@ A beginner portfolio project built with HTML, CSS, JavaScript, PHP, and MySQL. I
 | `database.sql` | Creates the `babystep_portfolio` database and its `contact_messages` table. Import it with phpMyAdmin. |
 | `SETUP-XAMPP.md` | A short XAMPP setup checklist. |
 | `CODE-NOTES.md` | Beginner-friendly notes explaining how the HTML, CSS, JavaScript, PHP, and database work together. |
+| `CODE-WALKTHROUGH.md` | Detailed, line-range-by-line-range explanations of each source file, the technical reasons for the choices, and class presentation notes. |
 
 ## How the page works
 
